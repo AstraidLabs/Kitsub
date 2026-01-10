@@ -91,8 +91,9 @@ public sealed class MuxCommand : CommandBase<MuxCommand.Settings>
             .Select(sub => new SubtitleDescriptor(sub, settings.Language, settings.Title, defaultFlag, forcedFlag))
             .ToList();
 
-        var service = ToolingFactory.CreateService(settings, Console);
-        await service.MuxSubtitlesAsync(settings.InputMkv, subtitles, output, context.GetCancellationToken()).ConfigureAwait(false);
+        using var tooling = ToolingFactory.CreateTooling(settings, Console);
+        await tooling.Service.MuxSubtitlesAsync(settings.InputMkv, subtitles, output, context.GetCancellationToken())
+            .ConfigureAwait(false);
         Console.MarkupLine($"[green]Muxed subtitles into[/] {Markup.Escape(output)}");
         return 0;
     }

@@ -17,6 +17,7 @@ public abstract class CommandBase<TSettings> : AsyncCommand<TSettings> where TSe
     {
         try
         {
+            ToolingFactory.ValidateLogging(settings);
             return await ExecuteAsyncCore(context, settings).ConfigureAwait(false);
         }
         catch (ValidationException ex)

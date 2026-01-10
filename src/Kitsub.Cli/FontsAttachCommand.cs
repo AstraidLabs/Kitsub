@@ -53,8 +53,9 @@ public sealed class FontsAttachCommand : CommandBase<FontsAttachCommand.Settings
             output = Path.Combine(Path.GetDirectoryName(settings.InputMkv) ?? string.Empty, $"{name}.fonts.mkv");
         }
 
-        var service = ToolingFactory.CreateService(settings, Console);
-        await service.AttachFontsAsync(settings.InputMkv, settings.FontsDir, output, context.GetCancellationToken()).ConfigureAwait(false);
+        using var tooling = ToolingFactory.CreateTooling(settings, Console);
+        await tooling.Service.AttachFontsAsync(settings.InputMkv, settings.FontsDir, output, context.GetCancellationToken())
+            .ConfigureAwait(false);
         Console.MarkupLine($"[green]Attached fonts into[/] {Markup.Escape(output)}");
         return 0;
     }
