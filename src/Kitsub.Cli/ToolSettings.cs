@@ -41,4 +41,8 @@ public abstract class ToolSettings : CommandSettings
     [CommandOption("--no-log")]
     /// <summary>Gets a value indicating whether logging is disabled.</summary>
     public bool NoLog { get; init; }
+
+    [CommandOption("--no-banner")]
+    /// <summary>Gets a value indicating whether the startup banner is suppressed.</summary>
+    public bool NoBanner { get; init; }
 }
