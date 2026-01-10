@@ -43,7 +43,9 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
         }
 
         var service = ToolingFactory.CreateService(settings, Console);
-        var (info, isMkv) = await service.InspectAsync(settings.FilePath, context.GetCancellationToken()).ConfigureAwait(false);
+        var result = await service.InspectAsync(settings.FilePath, context.GetCancellationToken()).ConfigureAwait(false);
+        var info = result.Info;
+        var isMkv = result.IsMkv;
 
         RenderTracks(info);
         if (isMkv && info.Attachments.Count > 0)
