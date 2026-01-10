@@ -22,7 +22,7 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
     {
     }
 
-    protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings)
+    protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         using var tooling = ToolingFactory.CreateTooling(settings, Console);
         if (settings.DryRun)
@@ -42,7 +42,7 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
         }
 
         var service = tooling.Service;
-        var result = await service.InspectAsync(settings.FilePath, context.GetCancellationToken()).ConfigureAwait(false);
+        var result = await service.InspectAsync(settings.FilePath, cancellationToken).ConfigureAwait(false);
         var info = result.Info;
         var isMkv = result.IsMkv;
 

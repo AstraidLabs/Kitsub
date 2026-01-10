@@ -35,7 +35,7 @@ public sealed class ExtractVideoCommand : CommandBase<ExtractVideoCommand.Settin
     {
     }
 
-    protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings)
+    protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         using var tooling = ToolingFactory.CreateTooling(settings, Console);
         if (settings.DryRun)
@@ -45,7 +45,7 @@ public sealed class ExtractVideoCommand : CommandBase<ExtractVideoCommand.Settin
             return 0;
         }
 
-        await tooling.Service.ExtractVideoAsync(settings.InputFile, settings.OutputFile, context.GetCancellationToken())
+        await tooling.Service.ExtractVideoAsync(settings.InputFile, settings.OutputFile, cancellationToken)
             .ConfigureAwait(false);
         Console.MarkupLine($"[green]Extracted video to[/] {Markup.Escape(settings.OutputFile)}");
         return 0;

@@ -43,7 +43,7 @@ public sealed class ExtractAudioCommand : CommandBase<ExtractAudioCommand.Settin
     {
     }
 
-    protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings)
+    protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         using var tooling = ToolingFactory.CreateTooling(settings, Console);
         if (settings.DryRun)
@@ -62,7 +62,7 @@ public sealed class ExtractAudioCommand : CommandBase<ExtractAudioCommand.Settin
             settings.InputFile,
             settings.TrackSelector,
             settings.OutputFile,
-            context.GetCancellationToken()).ConfigureAwait(false);
+            cancellationToken).ConfigureAwait(false);
         Console.MarkupLine($"[green]Extracted audio to[/] {Markup.Escape(settings.OutputFile)}");
         return 0;
     }
