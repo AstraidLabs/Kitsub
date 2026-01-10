@@ -5,7 +5,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Kitsub.Cli</RootNamespace>
+    <ApplicationIcon>favicon.ico</ApplicationIcon>
   </PropertyGroup>
+  <ItemGroup>
+    <Content Include="favicon.ico" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Kitsub.Core/Kitsub.Core.csproj" />
     <ProjectReference Include="../Kitsub.Tooling/Kitsub.Tooling.csproj" />

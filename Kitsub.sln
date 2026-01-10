@@ -1,12 +1,12 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.31903.59
+# Visual Studio Version 18
+VisualStudioVersion = 18.1.11312.151 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kitsub.Core", "src\Kitsub.Core\Kitsub.Core.csproj", "{44C84321-BBAD-4F55-9953-11DD5334C5A7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kitsub.Tooling", "src\Kitsub.Tooling\Kitsub.Tooling.csproj", "{EA02B5FF-5AF5-4830-8C13-524B32A4B102}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kitsub.Cli", "src\Kitsub.Cli\Kitsub.Cli.csproj", "{32FEC9DB-2E94-4771-B2B2-336E53043851}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kitsub", "src\Kitsub.Cli\Kitsub.csproj", "{32FEC9DB-2E94-4771-B2B2-336E53043851}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -26,5 +26,8 @@ Global
 		{32FEC9DB-2E94-4771-B2B2-336E53043851}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{32FEC9DB-2E94-4771-B2B2-336E53043851}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{32FEC9DB-2E94-4771-B2B2-336E53043851}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 EndGlobal
