@@ -33,7 +33,9 @@ public sealed class FontsCheckCommand : CommandBase<FontsCheckCommand.Settings>
         }
 
         var service = ToolingFactory.CreateService(settings, Console);
-        var (hasFonts, hasAss, _) = await service.CheckFontsAsync(settings.InputMkv, context.GetCancellationToken()).ConfigureAwait(false);
+        var result = await service.CheckFontsAsync(settings.InputMkv, context.GetCancellationToken()).ConfigureAwait(false);
+        var hasFonts = result.HasFonts;
+        var hasAss = result.HasAssSubtitles;
 
         if (hasFonts)
         {
