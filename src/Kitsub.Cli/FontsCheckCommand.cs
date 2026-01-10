@@ -21,7 +21,7 @@ public sealed class FontsCheckCommand : CommandBase<FontsCheckCommand.Settings>
     {
     }
 
-    protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings)
+    protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         using var tooling = ToolingFactory.CreateTooling(settings, Console);
         if (settings.DryRun)
@@ -32,7 +32,7 @@ public sealed class FontsCheckCommand : CommandBase<FontsCheckCommand.Settings>
         }
 
         var service = tooling.Service;
-        var result = await service.CheckFontsAsync(settings.InputMkv, context.GetCancellationToken()).ConfigureAwait(false);
+        var result = await service.CheckFontsAsync(settings.InputMkv, cancellationToken).ConfigureAwait(false);
         var hasFonts = result.HasFonts;
         var hasAss = result.HasAssSubtitles;
 

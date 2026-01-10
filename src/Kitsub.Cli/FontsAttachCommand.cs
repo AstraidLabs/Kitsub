@@ -44,7 +44,7 @@ public sealed class FontsAttachCommand : CommandBase<FontsAttachCommand.Settings
     {
     }
 
-    protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings)
+    protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         var output = settings.Output;
         if (string.IsNullOrWhiteSpace(output))
@@ -54,7 +54,7 @@ public sealed class FontsAttachCommand : CommandBase<FontsAttachCommand.Settings
         }
 
         using var tooling = ToolingFactory.CreateTooling(settings, Console);
-        await tooling.Service.AttachFontsAsync(settings.InputMkv, settings.FontsDir, output, context.GetCancellationToken())
+        await tooling.Service.AttachFontsAsync(settings.InputMkv, settings.FontsDir, output, cancellationToken)
             .ConfigureAwait(false);
         Console.MarkupLine($"[green]Attached fonts into[/] {Markup.Escape(output)}");
         return 0;

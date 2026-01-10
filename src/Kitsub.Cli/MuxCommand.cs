@@ -75,7 +75,7 @@ public sealed class MuxCommand : CommandBase<MuxCommand.Settings>
     {
     }
 
-    protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings)
+    protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         var output = settings.Output;
         if (string.IsNullOrWhiteSpace(output))
@@ -92,7 +92,7 @@ public sealed class MuxCommand : CommandBase<MuxCommand.Settings>
             .ToList();
 
         using var tooling = ToolingFactory.CreateTooling(settings, Console);
-        await tooling.Service.MuxSubtitlesAsync(settings.InputMkv, subtitles, output, context.GetCancellationToken())
+        await tooling.Service.MuxSubtitlesAsync(settings.InputMkv, subtitles, output, cancellationToken)
             .ConfigureAwait(false);
         Console.MarkupLine($"[green]Muxed subtitles into[/] {Markup.Escape(output)}");
         return 0;

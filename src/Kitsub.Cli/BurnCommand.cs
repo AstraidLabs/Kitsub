@@ -78,7 +78,7 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
     {
     }
 
-    protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings)
+    protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         using var tooling = ToolingFactory.CreateTooling(settings, Console);
         if (settings.DryRun)
@@ -96,7 +96,7 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
                 settings.FontsDir,
                 settings.Crf,
                 settings.Preset,
-                context.GetCancellationToken()).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
             Console.MarkupLine($"[green]Burned subtitles into[/] {Markup.Escape(settings.OutputFile)}");
             return 0;
         }
@@ -104,7 +104,7 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
         var tempFile = await tooling.Service.ExtractSubtitleToTempAsync(
             settings.InputFile,
             settings.TrackSelector!,
-            context.GetCancellationToken()).ConfigureAwait(false);
+            cancellationToken).ConfigureAwait(false);
 
         try
         {
@@ -115,7 +115,7 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
                 settings.FontsDir,
                 settings.Crf,
                 settings.Preset,
-                context.GetCancellationToken()).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
             Console.MarkupLine($"[green]Burned subtitles into[/] {Markup.Escape(settings.OutputFile)}");
         }
         finally

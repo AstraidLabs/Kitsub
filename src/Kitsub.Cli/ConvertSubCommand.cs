@@ -35,7 +35,7 @@ public sealed class ConvertSubCommand : CommandBase<ConvertSubCommand.Settings>
     {
     }
 
-    protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings)
+    protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         using var tooling = ToolingFactory.CreateTooling(settings, Console);
         if (settings.DryRun)
@@ -45,7 +45,7 @@ public sealed class ConvertSubCommand : CommandBase<ConvertSubCommand.Settings>
             return 0;
         }
 
-        await tooling.Service.ConvertSubtitleAsync(settings.InputFile, settings.OutputFile, context.GetCancellationToken())
+        await tooling.Service.ConvertSubtitleAsync(settings.InputFile, settings.OutputFile, cancellationToken)
             .ConfigureAwait(false);
         Console.MarkupLine($"[green]Converted subtitles to[/] {Markup.Escape(settings.OutputFile)}");
         return 0;

@@ -13,12 +13,12 @@ public abstract class CommandBase<TSettings> : AsyncCommand<TSettings> where TSe
         _console = console;
     }
 
-    public sealed override async Task<int> ExecuteAsync(CommandContext context, TSettings settings)
+    public sealed override async Task<int> ExecuteAsync(CommandContext context, TSettings settings, CancellationToken cancellationToken)
     {
         try
         {
             ToolingFactory.ValidateLogging(settings);
-            return await ExecuteAsyncCore(context, settings).ConfigureAwait(false);
+            return await ExecuteAsyncCore(context, settings, cancellationToken).ConfigureAwait(false);
         }
         catch (ValidationException ex)
         {
@@ -45,5 +45,5 @@ public abstract class CommandBase<TSettings> : AsyncCommand<TSettings> where TSe
 
     protected IAnsiConsole Console => _console;
 
-    protected abstract Task<int> ExecuteAsyncCore(CommandContext context, TSettings settings);
+    protected abstract Task<int> ExecuteAsyncCore(CommandContext context, TSettings settings, CancellationToken cancellationToken);
 }
