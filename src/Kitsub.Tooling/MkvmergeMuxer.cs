@@ -1,4 +1,5 @@
 using Kitsub.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Kitsub.Tooling;
 
@@ -15,11 +16,19 @@ public sealed class MkvmergeMuxer
 
     private readonly IExternalToolRunner _runner;
     private readonly ToolPaths _paths;
+    private readonly ExternalToolRunOptions _options;
+    private readonly ILogger<MkvmergeMuxer> _logger;
 
-    public MkvmergeMuxer(IExternalToolRunner runner, ToolPaths paths)
+    public MkvmergeMuxer(
+        IExternalToolRunner runner,
+        ToolPaths paths,
+        ExternalToolRunOptions options,
+        ILogger<MkvmergeMuxer> logger)
     {
         _runner = runner;
         _paths = paths;
+        _options = options;
+        _logger = logger;
     }
 
     public async Task MuxSubtitlesAsync(
@@ -29,11 +38,14 @@ public sealed class MkvmergeMuxer
         CancellationToken cancellationToken)
     {
         var command = BuildMuxSubtitlesCommand(inputMkv, subtitles, outputMkv);
-        var result = await _runner.CaptureAsync(command.Executable, command.Arguments, cancellationToken).ConfigureAwait(false);
+        var result = await _runner.CaptureAsync(command.Executable, command.Arguments, _options, cancellationToken)
+            .ConfigureAwait(false);
         if (result.ExitCode != 0)
         {
             throw new ExternalToolException("mkvmerge mux subtitles failed", result);
         }
+
+        _logger.LogInformation("Muxed subtitles into {Output}", outputMkv);
     }
 
     public async Task AttachFontsAsync(
@@ -43,11 +55,14 @@ public sealed class MkvmergeMuxer
         CancellationToken cancellationToken)
     {
         var command = BuildAttachFontsCommand(inputMkv, fontsDir, outputMkv);
-        var result = await _runner.CaptureAsync(command.Executable, command.Arguments, cancellationToken).ConfigureAwait(false);
+        var result = await _runner.CaptureAsync(command.Executable, command.Arguments, _options, cancellationToken)
+            .ConfigureAwait(false);
         if (result.ExitCode != 0)
         {
             throw new ExternalToolException("mkvmerge attach fonts failed", result);
         }
+
+        _logger.LogInformation("Attached fonts into {Output}", outputMkv);
     }
 
     public ToolCommand BuildMuxSubtitlesCommand(

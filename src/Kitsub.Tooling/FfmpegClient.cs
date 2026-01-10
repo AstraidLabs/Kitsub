@@ -1,5 +1,5 @@
 using System.Globalization;
-using Kitsub.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Kitsub.Tooling;
 
@@ -7,11 +7,19 @@ public sealed class FfmpegClient
 {
     private readonly IExternalToolRunner _runner;
     private readonly ToolPaths _paths;
+    private readonly ExternalToolRunOptions _options;
+    private readonly ILogger<FfmpegClient> _logger;
 
-    public FfmpegClient(IExternalToolRunner runner, ToolPaths paths)
+    public FfmpegClient(
+        IExternalToolRunner runner,
+        ToolPaths paths,
+        ExternalToolRunOptions options,
+        ILogger<FfmpegClient> logger)
     {
         _runner = runner;
         _paths = paths;
+        _options = options;
+        _logger = logger;
     }
 
     public async Task BurnSubtitlesAsync(
@@ -24,11 +32,14 @@ public sealed class FfmpegClient
         CancellationToken cancellationToken)
     {
         var command = BuildBurnSubtitlesCommand(inputFile, subtitleFile, outputFile, fontsDir, crf, preset);
-        var result = await _runner.CaptureAsync(command.Executable, command.Arguments, cancellationToken).ConfigureAwait(false);
+        var result = await _runner.CaptureAsync(command.Executable, command.Arguments, _options, cancellationToken)
+            .ConfigureAwait(false);
         if (result.ExitCode != 0)
         {
             throw new ExternalToolException("ffmpeg burn subtitles failed", result);
         }
+
+        _logger.LogInformation("Burned subtitles into {Output}", outputFile);
     }
 
     public async Task ExtractSubtitleAsync(
@@ -38,21 +49,27 @@ public sealed class FfmpegClient
         CancellationToken cancellationToken)
     {
         var command = BuildExtractSubtitleCommand(inputFile, subtitleIndex, outputFile);
-        var result = await _runner.CaptureAsync(command.Executable, command.Arguments, cancellationToken).ConfigureAwait(false);
+        var result = await _runner.CaptureAsync(command.Executable, command.Arguments, _options, cancellationToken)
+            .ConfigureAwait(false);
         if (result.ExitCode != 0)
         {
             throw new ExternalToolException("ffmpeg extract subtitle failed", result);
         }
+
+        _logger.LogInformation("Extracted subtitles to {Output}", outputFile);
     }
 
     public async Task ConvertSubtitleAsync(string inputFile, string outputFile, CancellationToken cancellationToken)
     {
         var command = BuildConvertSubtitleCommand(inputFile, outputFile);
-        var result = await _runner.CaptureAsync(command.Executable, command.Arguments, cancellationToken).ConfigureAwait(false);
+        var result = await _runner.CaptureAsync(command.Executable, command.Arguments, _options, cancellationToken)
+            .ConfigureAwait(false);
         if (result.ExitCode != 0)
         {
             throw new ExternalToolException("ffmpeg convert subtitle failed", result);
         }
+
+        _logger.LogInformation("Converted subtitles to {Output}", outputFile);
     }
 
     public async Task ExtractAudioAsync(
@@ -62,11 +79,14 @@ public sealed class FfmpegClient
         CancellationToken cancellationToken)
     {
         var command = BuildExtractAudioCommand(inputFile, audioIndex, outputFile);
-        var result = await _runner.CaptureAsync(command.Executable, command.Arguments, cancellationToken).ConfigureAwait(false);
+        var result = await _runner.CaptureAsync(command.Executable, command.Arguments, _options, cancellationToken)
+            .ConfigureAwait(false);
         if (result.ExitCode != 0)
         {
             throw new ExternalToolException("ffmpeg extract audio failed", result);
         }
+
+        _logger.LogInformation("Extracted audio to {Output}", outputFile);
     }
 
     public async Task ExtractVideoAsync(
@@ -75,11 +95,14 @@ public sealed class FfmpegClient
         CancellationToken cancellationToken)
     {
         var command = BuildExtractVideoCommand(inputFile, outputFile);
-        var result = await _runner.CaptureAsync(command.Executable, command.Arguments, cancellationToken).ConfigureAwait(false);
+        var result = await _runner.CaptureAsync(command.Executable, command.Arguments, _options, cancellationToken)
+            .ConfigureAwait(false);
         if (result.ExitCode != 0)
         {
             throw new ExternalToolException("ffmpeg extract video failed", result);
         }
+
+        _logger.LogInformation("Extracted video to {Output}", outputFile);
     }
 
     public ToolCommand BuildBurnSubtitlesCommand(

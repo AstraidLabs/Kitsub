@@ -24,25 +24,24 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
 
     protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings)
     {
-        var paths = ToolingFactory.BuildToolPaths(settings);
+        using var tooling = ToolingFactory.CreateTooling(settings, Console);
         if (settings.DryRun)
         {
-            var runner = new CliExternalToolRunner(Console, settings.DryRun, settings.Verbose);
             if (Path.GetExtension(settings.FilePath).Equals(".mkv", StringComparison.OrdinalIgnoreCase))
             {
-                var mkvmerge = new MkvmergeClient(runner, paths);
+                var mkvmerge = tooling.GetRequiredService<MkvmergeClient>();
                 Console.MarkupLine($"[grey]{Markup.Escape(mkvmerge.BuildIdentifyCommand(settings.FilePath).Rendered)}[/]");
             }
             else
             {
-                var ffprobe = new FfprobeClient(runner, paths);
+                var ffprobe = tooling.GetRequiredService<FfprobeClient>();
                 Console.MarkupLine($"[grey]{Markup.Escape(ffprobe.BuildProbeCommand(settings.FilePath).Rendered)}[/]");
             }
 
             return 0;
         }
 
-        var service = ToolingFactory.CreateService(settings, Console);
+        var service = tooling.Service;
         var result = await service.InspectAsync(settings.FilePath, context.GetCancellationToken()).ConfigureAwait(false);
         var info = result.Info;
         var isMkv = result.IsMkv;

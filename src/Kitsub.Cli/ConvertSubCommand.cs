@@ -37,17 +37,16 @@ public sealed class ConvertSubCommand : CommandBase<ConvertSubCommand.Settings>
 
     protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings)
     {
+        using var tooling = ToolingFactory.CreateTooling(settings, Console);
         if (settings.DryRun)
         {
-            var paths = ToolingFactory.BuildToolPaths(settings);
-            var runner = new CliExternalToolRunner(Console, true, settings.Verbose);
-            var ffmpeg = new FfmpegClient(runner, paths);
+            var ffmpeg = tooling.GetRequiredService<FfmpegClient>();
             Console.MarkupLine($"[grey]{Markup.Escape(ffmpeg.BuildConvertSubtitleCommand(settings.InputFile, settings.OutputFile).Rendered)}[/]");
             return 0;
         }
 
-        var service = ToolingFactory.CreateService(settings, Console);
-        await service.ConvertSubtitleAsync(settings.InputFile, settings.OutputFile, context.GetCancellationToken()).ConfigureAwait(false);
+        await tooling.Service.ConvertSubtitleAsync(settings.InputFile, settings.OutputFile, context.GetCancellationToken())
+            .ConfigureAwait(false);
         Console.MarkupLine($"[green]Converted subtitles to[/] {Markup.Escape(settings.OutputFile)}");
         return 0;
     }

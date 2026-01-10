@@ -23,16 +23,15 @@ public sealed class FontsCheckCommand : CommandBase<FontsCheckCommand.Settings>
 
     protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings)
     {
-        var paths = ToolingFactory.BuildToolPaths(settings);
+        using var tooling = ToolingFactory.CreateTooling(settings, Console);
         if (settings.DryRun)
         {
-            var runner = new CliExternalToolRunner(Console, settings.DryRun, settings.Verbose);
-            var mkvmerge = new MkvmergeClient(runner, paths);
+            var mkvmerge = tooling.GetRequiredService<MkvmergeClient>();
             Console.MarkupLine($"[grey]{Markup.Escape(mkvmerge.BuildIdentifyCommand(settings.InputMkv).Rendered)}[/]");
             return 0;
         }
 
-        var service = ToolingFactory.CreateService(settings, Console);
+        var service = tooling.Service;
         var result = await service.CheckFontsAsync(settings.InputMkv, context.GetCancellationToken()).ConfigureAwait(false);
         var hasFonts = result.HasFonts;
         var hasAss = result.HasAssSubtitles;

@@ -21,4 +21,13 @@ public abstract class ToolSettings : CommandSettings
 
     [CommandOption("--verbose")]
     public bool Verbose { get; init; }
+
+    [CommandOption("--log-file <PATH>")]
+    public string LogFile { get; init; } = "logs/kitsub.log";
+
+    [CommandOption("--log-level <trace|debug|info|warn|error>")]
+    public string LogLevel { get; init; } = "info";
+
+    [CommandOption("--no-log")]
+    public bool NoLog { get; init; }
 }

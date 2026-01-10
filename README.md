@@ -34,6 +34,9 @@ Install the external tools and ensure they are in `PATH` or pass custom paths vi
 - `--dry-run` – print the exact command(s) without executing.
 - `--verbose` – print commands and tool output.
 - `--ffmpeg`, `--ffprobe`, `--mkvmerge`, `--mkvpropedit` – override tool paths.
+- `--log-file` – override the log file path (default: `logs/kitsub.log`).
+- `--log-level` – set the log level (`trace|debug|info|warn|error`).
+- `--no-log` – disable file logging and log to the console only.
 
 ## Examples
 

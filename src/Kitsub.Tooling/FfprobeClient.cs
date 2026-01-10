@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using Kitsub.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Kitsub.Tooling;
 
@@ -8,22 +9,32 @@ public sealed class FfprobeClient
 {
     private readonly IExternalToolRunner _runner;
     private readonly ToolPaths _paths;
+    private readonly ExternalToolRunOptions _options;
+    private readonly ILogger<FfprobeClient> _logger;
 
-    public FfprobeClient(IExternalToolRunner runner, ToolPaths paths)
+    public FfprobeClient(
+        IExternalToolRunner runner,
+        ToolPaths paths,
+        ExternalToolRunOptions options,
+        ILogger<FfprobeClient> logger)
     {
         _runner = runner;
         _paths = paths;
+        _options = options;
+        _logger = logger;
     }
 
     public async Task<MediaInfo> ProbeAsync(string filePath, CancellationToken cancellationToken)
     {
         var command = BuildProbeCommand(filePath);
-        var result = await _runner.CaptureAsync(command.Executable, command.Arguments, cancellationToken).ConfigureAwait(false);
+        var result = await _runner.CaptureAsync(command.Executable, command.Arguments, _options, cancellationToken)
+            .ConfigureAwait(false);
         if (result.ExitCode != 0)
         {
             throw new ExternalToolException("ffprobe failed", result);
         }
 
+        _logger.LogDebug("Parsed ffprobe JSON for {FilePath}", filePath);
         return ParseMediaInfo(filePath, result.StandardOutput);
     }
 

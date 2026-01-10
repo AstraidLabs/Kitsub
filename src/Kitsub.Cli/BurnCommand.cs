@@ -80,16 +80,16 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
 
     protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings)
     {
+        using var tooling = ToolingFactory.CreateTooling(settings, Console);
         if (settings.DryRun)
         {
-            await RenderDryRunAsync(settings).ConfigureAwait(false);
+            await RenderDryRunAsync(tooling, settings).ConfigureAwait(false);
             return 0;
         }
 
-        var service = ToolingFactory.CreateService(settings, Console);
         if (!string.IsNullOrWhiteSpace(settings.SubtitleFile))
         {
-            await service.BurnSubtitlesAsync(
+            await tooling.Service.BurnSubtitlesAsync(
                 settings.InputFile,
                 settings.SubtitleFile,
                 settings.OutputFile,
@@ -101,14 +101,14 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
             return 0;
         }
 
-        var tempFile = await service.ExtractSubtitleToTempAsync(
+        var tempFile = await tooling.Service.ExtractSubtitleToTempAsync(
             settings.InputFile,
             settings.TrackSelector!,
             context.GetCancellationToken()).ConfigureAwait(false);
 
         try
         {
-            await service.BurnSubtitlesAsync(
+            await tooling.Service.BurnSubtitlesAsync(
                 settings.InputFile,
                 tempFile,
                 settings.OutputFile,
@@ -129,11 +129,9 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
         return 0;
     }
 
-    private Task RenderDryRunAsync(Settings settings)
+    private Task RenderDryRunAsync(ToolingContext tooling, Settings settings)
     {
-        var paths = ToolingFactory.BuildToolPaths(settings);
-        var runner = new CliExternalToolRunner(Console, true, settings.Verbose);
-        var ffmpeg = new FfmpegClient(runner, paths);
+        var ffmpeg = tooling.GetRequiredService<FfmpegClient>();
 
         if (!string.IsNullOrWhiteSpace(settings.SubtitleFile))
         {
