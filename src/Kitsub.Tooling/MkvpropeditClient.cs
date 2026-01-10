@@ -1,4 +1,5 @@
 using System.Globalization;
+using Microsoft.Extensions.Logging;
 
 namespace Kitsub.Tooling;
 
@@ -6,11 +7,19 @@ public sealed class MkvpropeditClient
 {
     private readonly IExternalToolRunner _runner;
     private readonly ToolPaths _paths;
+    private readonly ExternalToolRunOptions _options;
+    private readonly ILogger<MkvpropeditClient> _logger;
 
-    public MkvpropeditClient(IExternalToolRunner runner, ToolPaths paths)
+    public MkvpropeditClient(
+        IExternalToolRunner runner,
+        ToolPaths paths,
+        ExternalToolRunOptions options,
+        ILogger<MkvpropeditClient> logger)
     {
         _runner = runner;
         _paths = paths;
+        _options = options;
+        _logger = logger;
     }
 
     public async Task SetTrackFlagsAsync(
@@ -24,11 +33,14 @@ public sealed class MkvpropeditClient
     {
         var command = BuildSetTrackFlagsCommand(filePath, trackId, isDefault, isForced, language, name);
 
-        var result = await _runner.CaptureAsync(command.Executable, command.Arguments, cancellationToken).ConfigureAwait(false);
+        var result = await _runner.CaptureAsync(command.Executable, command.Arguments, _options, cancellationToken)
+            .ConfigureAwait(false);
         if (result.ExitCode != 0)
         {
             throw new ExternalToolException("mkvpropedit failed", result);
         }
+
+        _logger.LogInformation("Updated mkv track flags for {FilePath}", filePath);
     }
 
     public ToolCommand BuildSetTrackFlagsCommand(

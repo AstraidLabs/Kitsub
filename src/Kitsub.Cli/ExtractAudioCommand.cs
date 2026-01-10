@@ -45,6 +45,7 @@ public sealed class ExtractAudioCommand : CommandBase<ExtractAudioCommand.Settin
 
     protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings)
     {
+        using var tooling = ToolingFactory.CreateTooling(settings, Console);
         if (settings.DryRun)
         {
             if (!int.TryParse(settings.TrackSelector, out var index))
@@ -52,15 +53,16 @@ public sealed class ExtractAudioCommand : CommandBase<ExtractAudioCommand.Settin
                 throw new ValidationException("Dry-run for --track requires a numeric index selector.");
             }
 
-            var paths = ToolingFactory.BuildToolPaths(settings);
-            var runner = new CliExternalToolRunner(Console, true, settings.Verbose);
-            var ffmpeg = new FfmpegClient(runner, paths);
+            var ffmpeg = tooling.GetRequiredService<FfmpegClient>();
             Console.MarkupLine($"[grey]{Markup.Escape(ffmpeg.BuildExtractAudioCommand(settings.InputFile, index, settings.OutputFile).Rendered)}[/]");
             return 0;
         }
 
-        var service = ToolingFactory.CreateService(settings, Console);
-        await service.ExtractAudioAsync(settings.InputFile, settings.TrackSelector, settings.OutputFile, context.GetCancellationToken()).ConfigureAwait(false);
+        await tooling.Service.ExtractAudioAsync(
+            settings.InputFile,
+            settings.TrackSelector,
+            settings.OutputFile,
+            context.GetCancellationToken()).ConfigureAwait(false);
         Console.MarkupLine($"[green]Extracted audio to[/] {Markup.Escape(settings.OutputFile)}");
         return 0;
     }
