@@ -1,36 +1,49 @@
+// Summary: Implements the CLI command that inspects MKV files for font attachments.
 using Kitsub.Tooling;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
 namespace Kitsub.Cli;
 
+/// <summary>Executes font attachment checks for MKV files.</summary>
 public sealed class FontsCheckCommand : CommandBase<FontsCheckCommand.Settings>
 {
+    /// <summary>Defines command-line settings for checking font attachments.</summary>
     public sealed class Settings : ToolSettings
     {
         [CommandOption("--in <MKV>")]
+        /// <summary>Gets the input MKV file path.</summary>
         public string InputMkv { get; init; } = string.Empty;
 
+        /// <summary>Validates the provided settings for font checks.</summary>
+        /// <returns>A validation result indicating success or failure.</returns>
         public override ValidationResult Validate()
         {
+            // Block: Validate the required input MKV file before inspection.
             return ValidationHelpers.ValidateFileExists(InputMkv, "Input MKV");
         }
     }
 
+    /// <summary>Initializes the command with the console used for output.</summary>
+    /// <param name="console">The console used to render command output.</param>
     public FontsCheckCommand(IAnsiConsole console) : base(console)
     {
+        // Block: Delegate console handling to the base command class.
     }
 
     protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
+        // Block: Create tooling services scoped to this command execution.
         using var tooling = ToolingFactory.CreateTooling(settings, Console);
         if (settings.DryRun)
         {
+            // Block: Render the identify command without executing it.
             var mkvmerge = tooling.GetRequiredService<MkvmergeClient>();
             Console.MarkupLine($"[grey]{Markup.Escape(mkvmerge.BuildIdentifyCommand(settings.InputMkv).Rendered)}[/]");
             return 0;
         }
 
+        // Block: Query the service for font and subtitle metadata.
         var service = tooling.Service;
         var result = await service.CheckFontsAsync(settings.InputMkv, cancellationToken).ConfigureAwait(false);
         var hasFonts = result.HasFonts;
@@ -38,15 +51,18 @@ public sealed class FontsCheckCommand : CommandBase<FontsCheckCommand.Settings>
 
         if (hasFonts)
         {
+            // Block: Report that font attachments are present.
             Console.MarkupLine("[green]Fonts attachments present.[/]");
         }
         else
         {
+            // Block: Report that no font attachments were detected.
             Console.MarkupLine("[yellow]No fonts attachments detected.[/]");
         }
 
         if (!hasFonts && hasAss)
         {
+            // Block: Warn when ASS subtitles are present without embedded fonts.
             Console.MarkupLine("[red]Warning:[/] ASS subtitles detected without embedded fonts.");
         }
 
