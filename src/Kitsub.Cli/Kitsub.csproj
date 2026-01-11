@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="tools/**" Condition="Exists('tools')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
   </ItemGroup>
