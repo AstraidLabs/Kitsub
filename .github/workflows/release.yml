@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+      - name: Restore
+        run: dotnet restore Kitsub.sln
+      - name: Fetch tools
+        run: pwsh -File scripts/fetch-tools.ps1
+      - name: Publish
+        run: dotnet publish src/Kitsub.Cli/Kitsub.csproj -c Release -r win-x64 --no-restore -o artifacts\kitsub-${{ github.ref_name }}-win-x64
+      - name: Archive
+        shell: pwsh
+        run: Compress-Archive -Path artifacts\kitsub-${{ github.ref_name }}-win-x64\* -DestinationPath artifacts\kitsub-${{ github.ref_name }}-win-x64.zip
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kitsub-${{ github.ref_name }}-win-x64
+          path: artifacts\kitsub-${{ github.ref_name }}-win-x64.zip
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts\kitsub-${{ github.ref_name }}-win-x64.zip
