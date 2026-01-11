@@ -1,0 +1,23 @@
+{
+  "toolsetVersion": "dev",
+  "rids": {
+    "win-x64": {
+      "ffmpeg": { "path": "ffmpeg/ffmpeg.exe" },
+      "ffprobe": { "path": "ffmpeg/ffprobe.exe" },
+      "mkvmerge": { "path": "mkvtoolnix/mkvmerge.exe" },
+      "mkvpropedit": { "path": "mkvtoolnix/mkvpropedit.exe" }
+    },
+    "linux-x64": {
+      "ffmpeg": { "path": "ffmpeg/ffmpeg" },
+      "ffprobe": { "path": "ffmpeg/ffprobe" },
+      "mkvmerge": { "path": "mkvtoolnix/mkvmerge" },
+      "mkvpropedit": { "path": "mkvtoolnix/mkvpropedit" }
+    },
+    "linux-arm64": {
+      "ffmpeg": { "path": "ffmpeg/ffmpeg" },
+      "ffprobe": { "path": "ffmpeg/ffprobe" },
+      "mkvmerge": { "path": "mkvtoolnix/mkvmerge" },
+      "mkvpropedit": { "path": "mkvtoolnix/mkvpropedit" }
+    }
+  }
+}

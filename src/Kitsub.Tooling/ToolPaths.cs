@@ -7,10 +7,10 @@ namespace Kitsub.Tooling;
 /// <param name="Mkvmerge">The mkvmerge executable path or name.</param>
 /// <param name="Mkvpropedit">The mkvpropedit executable path or name.</param>
 public sealed record ToolPaths(
-    string Ffmpeg,
-    string Ffprobe,
-    string Mkvmerge,
-    string Mkvpropedit
+    string? Ffmpeg,
+    string? Ffprobe,
+    string? Mkvmerge,
+    string? Mkvpropedit
 )
 {
     /// <summary>Gets the default tool paths using standard executable names.</summary>

@@ -56,6 +56,14 @@ public static class Program
                 convert.SetDescription("Convert subtitles.");
                 convert.AddCommand<ConvertSubCommand>("sub").WithDescription("Convert subtitle file.");
             });
+
+            config.AddBranch("tools", tools =>
+            {
+                // Block: Configure commands for tool status and cache management.
+                tools.SetDescription("Bundled tool management.");
+                tools.AddCommand<ToolsStatusCommand>("status").WithDescription("Show resolved tool paths.");
+                tools.AddCommand<ToolsCleanCommand>("clean").WithDescription("Delete extracted tool cache.");
+            });
         });
 
         // Block: Run the command app and return its exit code.
