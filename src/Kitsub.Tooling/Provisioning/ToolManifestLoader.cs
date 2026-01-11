@@ -21,7 +21,7 @@ public sealed class ToolManifestLoader
     public ToolsManifest Load()
     {
         var manifest = TryLoadFromDisk() ?? LoadFromEmbeddedResource();
-        Validate(manifest);
+        ValidateManifest(manifest);
         return manifest;
     }
 
@@ -58,7 +58,7 @@ public sealed class ToolManifestLoader
         return Deserialize(json);
     }
 
-    private static ToolsManifest Deserialize(string json)
+    internal static ToolsManifest Deserialize(string json)
     {
         var manifest = JsonSerializer.Deserialize<ToolsManifest>(json, new JsonSerializerOptions
         {
@@ -68,7 +68,7 @@ public sealed class ToolManifestLoader
         return manifest ?? throw new InvalidOperationException("Tools manifest is invalid.");
     }
 
-    private static void Validate(ToolsManifest manifest)
+    internal static void ValidateManifest(ToolsManifest manifest)
     {
         if (string.IsNullOrWhiteSpace(manifest.ToolsetVersion))
         {

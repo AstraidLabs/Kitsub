@@ -281,32 +281,7 @@ public sealed class ToolBundleManager
     {
         var content = await HttpClient.GetStringAsync(definition.Sha256Url, cancellationToken).ConfigureAwait(false);
 
-        if (string.IsNullOrWhiteSpace(definition.Sha256Entry))
-        {
-            var match = Sha256Regex.Match(content);
-            if (!match.Success)
-            {
-                throw new InvalidOperationException("Unable to parse SHA256 from manifest source.");
-            }
-
-            return match.Value.ToLowerInvariant();
-        }
-
-        foreach (var line in content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
-        {
-            if (!line.Contains(definition.Sha256Entry, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            var match = Sha256Regex.Match(line);
-            if (match.Success)
-            {
-                return match.Value.ToLowerInvariant();
-            }
-        }
-
-        throw new InvalidOperationException($"SHA256 entry '{definition.Sha256Entry}' not found in manifest source.");
+        return ParseSha256Content(content, definition.Sha256Entry);
     }
 
     private async Task DownloadFileAsync(string url, string destination, CancellationToken cancellationToken)
@@ -323,6 +298,36 @@ public sealed class ToolBundleManager
     private static string NormalizeArchivePath(string value)
     {
         return value.Replace('\\', '/');
+    }
+
+    internal static string ParseSha256Content(string content, string? sha256Entry)
+    {
+        if (string.IsNullOrWhiteSpace(sha256Entry))
+        {
+            var match = Sha256Regex.Match(content);
+            if (!match.Success)
+            {
+                throw new InvalidOperationException("Unable to parse SHA256 from manifest source.");
+            }
+
+            return match.Value.ToLowerInvariant();
+        }
+
+        foreach (var line in content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (!line.Contains(sha256Entry, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var match = Sha256Regex.Match(line);
+            if (match.Success)
+            {
+                return match.Value.ToLowerInvariant();
+            }
+        }
+
+        throw new InvalidOperationException($"SHA256 entry '{sha256Entry}' not found in manifest source.");
     }
 
     private sealed class ToolHashManifest
