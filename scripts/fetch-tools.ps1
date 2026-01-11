@@ -1,178 +1,119 @@
 $ErrorActionPreference = "Stop"
 
 $Root = (Resolve-Path (Join-Path $PSScriptRoot ".."))
-$VendorDir = Join-Path $Root "vendor"
-$ManifestPath = Join-Path $Root "src/Kitsub.Cli\ToolsManifest.json"
+$ManifestPath = Join-Path $Root "src/Kitsub.Tooling/Tools/ToolsManifest.json"
+$OutputRoot = Join-Path $Root "src/Kitsub.Cli/tools/win-x64"
+$TempRoot = Join-Path $Root "vendor/tools-temp"
 
-$FfmpegVersion = "7.1"
-$MkvToolNixVersion = "87.0"
-$ToolsetVersion = "ffmpeg-$FfmpegVersion-mkvtoolnix-$MkvToolNixVersion"
-
-$FfmpegWinUrl = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
-$FfmpegLinuxX64Url = "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"
-$FfmpegLinuxArm64Url = "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz"
-
-$MkvWinUrl = "https://mkvtoolnix.download/windows/releases/$MkvToolNixVersion/mkvtoolnix-64-bit-$MkvToolNixVersion.zip"
-$MkvLinuxX64Url = "https://mkvtoolnix.download/linux/releases/$MkvToolNixVersion/mkvtoolnix-$MkvToolNixVersion-x86_64.AppImage"
-$MkvLinuxArm64Url = "https://mkvtoolnix.download/linux/releases/$MkvToolNixVersion/mkvtoolnix-$MkvToolNixVersion-aarch64.AppImage"
-
-New-Item -ItemType Directory -Force -Path $VendorDir | Out-Null
-
-function Download-File {
-    param([string]$Url, [string]$Destination)
-    Write-Host "Downloading $Url"
-    Invoke-WebRequest -Uri $Url -OutFile $Destination
+if (-not (Test-Path $ManifestPath)) {
+    throw "Tools manifest not found at $ManifestPath"
 }
 
-function Extract-Zip {
-    param([string]$Archive, [string]$Destination)
-    Expand-Archive -Path $Archive -DestinationPath $Destination -Force
+if (-not (Get-Command 7z -ErrorAction SilentlyContinue)) {
+    throw "7z is required to extract .7z archives. Install 7-Zip and ensure '7z' is on PATH."
 }
 
-function Extract-TarXz {
-    param([string]$Archive, [string]$Destination)
-    tar -xf $Archive -C $Destination
+$manifest = Get-Content -Raw -Path $ManifestPath | ConvertFrom-Json
+$rid = "win-x64"
+$ridEntry = $manifest.rids.$rid
+if (-not $ridEntry) {
+    throw "Manifest does not contain RID '$rid'"
 }
 
-function Extract-AppImage {
-    param([string]$Archive, [string]$Destination)
+function Get-Sha256FromUrl {
+    param(
+        [string]$Url,
+        [string]$Entry
+    )
 
-    if ($IsWindows) {
-        if (-not (Get-Command wsl -ErrorAction SilentlyContinue)) {
-            throw "AppImage extraction requires WSL on Windows."
+    $content = Invoke-WebRequest -Uri $Url -UseBasicParsing
+    if ([string]::IsNullOrWhiteSpace($Entry)) {
+        $match = [regex]::Match($content.Content, "[0-9a-fA-F]{64}")
+        if (-not $match.Success) {
+            throw "Unable to parse SHA256 from $Url"
         }
-        $wslPath = wsl wslpath -a $Archive
-        wsl bash -lc "chmod +x $wslPath && $wslPath --appimage-extract" | Out-Null
-        $squashRoot = Join-Path (Get-Location) "squashfs-root"
+        return $match.Value.ToLowerInvariant()
     }
-    else {
-        chmod +x $Archive
-        & $Archive --appimage-extract | Out-Null
-        $squashRoot = Join-Path (Get-Location) "squashfs-root"
+
+    foreach ($line in $content.Content -split "`r?`n") {
+        if ($line -match [regex]::Escape($Entry)) {
+            $match = [regex]::Match($line, "[0-9a-fA-F]{64}")
+            if ($match.Success) {
+                return $match.Value.ToLowerInvariant()
+            }
+        }
+    }
+
+    throw "SHA256 entry '$Entry' not found in $Url"
+}
+
+function Get-FileSha256 {
+    param([string]$Path)
+    return (Get-FileHash -Path $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+}
+
+function Extract-Archive {
+    param(
+        [string]$Archive,
+        [string]$Destination
+    )
+
+    if (Test-Path $Destination) {
+        Remove-Item -Recurse -Force $Destination
     }
 
     New-Item -ItemType Directory -Force -Path $Destination | Out-Null
-    Copy-Item (Join-Path $squashRoot "usr/bin/mkvmerge") (Join-Path $Destination "mkvmerge") -Force
-    Copy-Item (Join-Path $squashRoot "usr/bin/mkvpropedit") (Join-Path $Destination "mkvpropedit") -Force
-    Remove-Item -Recurse -Force $squashRoot
+    & 7z x $Archive ("-o$Destination") | Out-Null
 }
 
-function Process-Rid {
+function Stage-Tool {
     param(
-        [string]$Rid,
-        [string]$FfmpegUrl,
-        [string]$MkvUrl
+        [string]$ToolName,
+        $ToolDefinition
     )
 
-    $ridDir = Join-Path $VendorDir $Rid
-    New-Item -ItemType Directory -Force -Path $ridDir | Out-Null
+    $toolRoot = Join-Path $OutputRoot $ToolName
+    $archiveName = [System.IO.Path]::GetFileName([System.Uri]$ToolDefinition.archiveUrl)
+    $archivePath = Join-Path $TempRoot $archiveName
+    $extractDir = Join-Path $TempRoot ($ToolName + "-extract")
 
-    $ffmpegArchive = Join-Path $ridDir "ffmpeg.tar"
-    Download-File -Url $FfmpegUrl -Destination $ffmpegArchive
-    $ffmpegExtract = Join-Path $ridDir "ffmpeg.extract"
-    New-Item -ItemType Directory -Force -Path $ffmpegExtract | Out-Null
-    if ($Rid -eq "win-x64") {
-        Extract-Zip -Archive $ffmpegArchive -Destination $ffmpegExtract
-        $ffmpegExe = Get-ChildItem -Path $ffmpegExtract -Recurse -Filter ffmpeg.exe | Select-Object -First 1
-        $ffprobeExe = Get-ChildItem -Path $ffmpegExtract -Recurse -Filter ffprobe.exe | Select-Object -First 1
-        $dest = Join-Path $ridDir "ffmpeg"
-        New-Item -ItemType Directory -Force -Path $dest | Out-Null
-        Copy-Item $ffmpegExe.FullName (Join-Path $dest "ffmpeg.exe") -Force
-        Copy-Item $ffprobeExe.FullName (Join-Path $dest "ffprobe.exe") -Force
+    Write-Host "Downloading $ToolName from $($ToolDefinition.archiveUrl)"
+    Invoke-WebRequest -Uri $ToolDefinition.archiveUrl -OutFile $archivePath
+
+    $expectedHash = Get-Sha256FromUrl -Url $ToolDefinition.sha256Url -Entry $ToolDefinition.sha256Entry
+    $actualHash = Get-FileSha256 -Path $archivePath
+    if ($expectedHash -ne $actualHash) {
+        throw "$ToolName SHA256 mismatch. Expected $expectedHash, got $actualHash"
     }
-    else {
-        Extract-TarXz -Archive $ffmpegArchive -Destination $ffmpegExtract
-        $ffmpegExe = Get-ChildItem -Path $ffmpegExtract -Recurse -Filter ffmpeg | Select-Object -First 1
-        $ffprobeExe = Get-ChildItem -Path $ffmpegExtract -Recurse -Filter ffprobe | Select-Object -First 1
-        $dest = Join-Path $ridDir "ffmpeg"
-        New-Item -ItemType Directory -Force -Path $dest | Out-Null
-        Copy-Item $ffmpegExe.FullName (Join-Path $dest "ffmpeg") -Force
-        Copy-Item $ffprobeExe.FullName (Join-Path $dest "ffprobe") -Force
-    }
-    Remove-Item -Recurse -Force $ffmpegExtract
-    Remove-Item -Force $ffmpegArchive
 
-    $mkvArchive = Join-Path $ridDir "mkvtoolnix.bin"
-    Download-File -Url $MkvUrl -Destination $mkvArchive
-    $mkvDest = Join-Path $ridDir "mkvtoolnix"
-    if ($Rid -eq "win-x64") {
-        $mkvExtract = Join-Path $ridDir "mkvtoolnix.extract"
-        New-Item -ItemType Directory -Force -Path $mkvExtract | Out-Null
-        Extract-Zip -Archive $mkvArchive -Destination $mkvExtract
-        $mkvmergeExe = Get-ChildItem -Path $mkvExtract -Recurse -Filter mkvmerge.exe | Select-Object -First 1
-        $mkvpropeditExe = Get-ChildItem -Path $mkvExtract -Recurse -Filter mkvpropedit.exe | Select-Object -First 1
-        New-Item -ItemType Directory -Force -Path $mkvDest | Out-Null
-        Copy-Item $mkvmergeExe.FullName (Join-Path $mkvDest "mkvmerge.exe") -Force
-        Copy-Item $mkvpropeditExe.FullName (Join-Path $mkvDest "mkvpropedit.exe") -Force
-        Remove-Item -Recurse -Force $mkvExtract
-    }
-    else {
-        Extract-AppImage -Archive $mkvArchive -Destination $mkvDest
-    }
-    Remove-Item -Force $mkvArchive
-}
+    Extract-Archive -Archive $archivePath -Destination $extractDir
 
-Process-Rid -Rid "win-x64" -FfmpegUrl $FfmpegWinUrl -MkvUrl $MkvWinUrl
-Process-Rid -Rid "linux-x64" -FfmpegUrl $FfmpegLinuxX64Url -MkvUrl $MkvLinuxX64Url
-Process-Rid -Rid "linux-arm64" -FfmpegUrl $FfmpegLinuxArm64Url -MkvUrl $MkvLinuxArm64Url
+    foreach ($entry in $ToolDefinition.extractMap.PSObject.Properties) {
+        $fileName = $entry.Name
+        $archivePathMatch = $entry.Value -replace "/", "\\"
+        $source = Get-ChildItem -Path $extractDir -Recurse -Filter $fileName |
+            Where-Object { $_.FullName -like "*${archivePathMatch}" } |
+            Select-Object -First 1
 
-python - <<PY
-import hashlib
-import json
-from pathlib import Path
-
-root = Path(r"$Root")
-manifest_path = Path(r"$ManifestPath")
-vendor = Path(r"$VendorDir")
-
-def sha256(path: Path) -> str:
-    hasher = hashlib.sha256()
-    with path.open('rb') as fh:
-        for chunk in iter(lambda: fh.read(1024 * 1024), b''):
-            hasher.update(chunk)
-    return hasher.hexdigest()
-
-manifest = {
-    "toolsetVersion": "$ToolsetVersion",
-    "rids": {}
-}
-
-rids = ["win-x64", "linux-x64", "linux-arm64"]
-for rid in rids:
-    ffmpeg = vendor / rid / "ffmpeg"
-    mkvtoolnix = vendor / rid / "mkvtoolnix"
-    if rid.startswith("win"):
-        ffmpeg_name = "ffmpeg.exe"
-        ffprobe_name = "ffprobe.exe"
-        mkvmerge_name = "mkvmerge.exe"
-        mkvpropedit_name = "mkvpropedit.exe"
-    else:
-        ffmpeg_name = "ffmpeg"
-        ffprobe_name = "ffprobe"
-        mkvmerge_name = "mkvmerge"
-        mkvpropedit_name = "mkvpropedit"
-
-    manifest["rids"][rid] = {
-        "ffmpeg": {
-            "path": f"ffmpeg/{ffmpeg_name}",
-            "sha256": sha256(ffmpeg / ffmpeg_name)
-        },
-        "ffprobe": {
-            "path": f"ffmpeg/{ffprobe_name}",
-            "sha256": sha256(ffmpeg / ffprobe_name)
-        },
-        "mkvmerge": {
-            "path": f"mkvtoolnix/{mkvmerge_name}",
-            "sha256": sha256(mkvtoolnix / mkvmerge_name)
-        },
-        "mkvpropedit": {
-            "path": f"mkvtoolnix/{mkvpropedit_name}",
-            "sha256": sha256(mkvtoolnix / mkvpropedit_name)
+        if (-not $source) {
+            throw "Failed to locate $fileName in extracted $ToolName archive"
         }
+
+        $destination = Join-Path $toolRoot ($entry.Value -replace "/", "\\")
+        $destinationDir = Split-Path -Parent $destination
+        New-Item -ItemType Directory -Force -Path $destinationDir | Out-Null
+        Copy-Item -Path $source.FullName -Destination $destination -Force
     }
+}
 
-manifest_path.write_text(json.dumps(manifest, indent=2))
-print(f"Wrote manifest to {manifest_path}")
-PY
+if (Test-Path $TempRoot) {
+    Remove-Item -Recurse -Force $TempRoot
+}
+New-Item -ItemType Directory -Force -Path $TempRoot | Out-Null
+New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
 
-Write-Host "Tools staged under $VendorDir"
+Stage-Tool -ToolName "ffmpeg" -ToolDefinition $ridEntry.ffmpeg
+Stage-Tool -ToolName "mkvtoolnix" -ToolDefinition $ridEntry.mkvtoolnix
+
+Remove-Item -Recurse -Force $TempRoot
+Write-Host "Tools staged under $OutputRoot"

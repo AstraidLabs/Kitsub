@@ -1,7 +1,5 @@
 // Summary: Clears the extracted tools cache directory.
-using Kitsub.Tooling.Bundling;
-using Microsoft.Extensions.DependencyInjection;
-using Serilog.Extensions.Logging;
+using Kitsub.Tooling.Provisioning;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -10,6 +8,9 @@ namespace Kitsub.Cli;
 /// <summary>Deletes cached extracted tools.</summary>
 public sealed class ToolsCleanCommand : CommandBase<ToolsCleanCommand.Settings>
 {
+    private readonly ToolBundleManager _bundleManager;
+    private readonly WindowsRidDetector _ridDetector;
+
     /// <summary>Defines command-line settings for cleaning tool caches.</summary>
     public sealed class Settings : ToolSettings
     {
@@ -20,8 +21,10 @@ public sealed class ToolsCleanCommand : CommandBase<ToolsCleanCommand.Settings>
 
     /// <summary>Initializes the command with the console used for output.</summary>
     /// <param name="console">The console used to render command output.</param>
-    public ToolsCleanCommand(IAnsiConsole console) : base(console)
+    public ToolsCleanCommand(IAnsiConsole console, ToolBundleManager bundleManager, WindowsRidDetector ridDetector) : base(console)
     {
+        _bundleManager = bundleManager;
+        _ridDetector = ridDetector;
     }
 
     protected override Task<int> ExecuteAsyncCore(CommandContext context, Settings settings, CancellationToken cancellationToken)
@@ -32,21 +35,7 @@ public sealed class ToolsCleanCommand : CommandBase<ToolsCleanCommand.Settings>
             return Task.FromResult(1);
         }
 
-        var logger = ToolingFactory.CreateLogger(settings);
-        var services = new ServiceCollection();
-        services.AddSingleton(new ToolResolverOptions
-        {
-            PreferBundled = settings.PreferBundled,
-            PreferPath = settings.PreferPath,
-            ToolsCacheDirectory = settings.ToolsCacheDir
-        });
-        services.AddSingleton<ToolManifestLoader>();
-        services.AddSingleton<ToolBundleManager>();
-        services.AddLogging(builder => builder.AddSerilog(logger, dispose: true));
-
-        using var provider = services.BuildServiceProvider();
-        var bundleManager = provider.GetRequiredService<ToolBundleManager>();
-        bundleManager.CleanCache();
+        _bundleManager.CleanCache(_ridDetector.GetRuntimeRid(), settings.ToolsCacheDir);
 
         Console.MarkupLine("[green]Tools cache cleared.[/]");
         return Task.FromResult(0);

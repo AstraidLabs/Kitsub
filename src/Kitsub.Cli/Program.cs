@@ -1,5 +1,8 @@
 // Summary: Boots the CLI application, configures services, and registers command routes.
+using Kitsub.Tooling.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
+using Serilog.Extensions.Logging;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -21,6 +24,16 @@ public static class Program
         // Block: Configure dependency injection services used by CLI commands.
         var services = new ServiceCollection();
         services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
+        var bootstrapLogger = new LoggerConfiguration()
+            .MinimumLevel.Information()
+            .WriteTo.Console()
+            .CreateLogger();
+        services.AddLogging(builder => builder.AddSerilog(bootstrapLogger, dispose: true));
+        services.AddSingleton<ToolManifestLoader>();
+        services.AddSingleton<ToolCachePaths>();
+        services.AddSingleton<WindowsRidDetector>();
+        services.AddSingleton<ToolBundleManager>();
+        services.AddSingleton<ToolResolver>();
 
         // Block: Wire up the Spectre.Console command app and its routes.
         var registrar = new TypeRegistrar(services);
@@ -60,8 +73,9 @@ public static class Program
             config.AddBranch("tools", tools =>
             {
                 // Block: Configure commands for tool status and cache management.
-                tools.SetDescription("Bundled tool management.");
+                tools.SetDescription("Tool provisioning and cache management.");
                 tools.AddCommand<ToolsStatusCommand>("status").WithDescription("Show resolved tool paths.");
+                tools.AddCommand<ToolsFetchCommand>("fetch").WithDescription("Download and cache tool binaries.");
                 tools.AddCommand<ToolsCleanCommand>("clean").WithDescription("Delete extracted tool cache.");
             });
         });

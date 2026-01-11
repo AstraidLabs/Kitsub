@@ -1,5 +1,6 @@
 // Summary: Implements the CLI command that muxes subtitle files into MKV containers.
 using Kitsub.Core;
+using Kitsub.Tooling.Provisioning;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -8,6 +9,8 @@ namespace Kitsub.Cli;
 /// <summary>Executes subtitle muxing into MKV files.</summary>
 public sealed class MuxCommand : CommandBase<MuxCommand.Settings>
 {
+    private readonly ToolResolver _toolResolver;
+
     /// <summary>Defines command-line settings for muxing subtitles.</summary>
     public sealed class Settings : ToolSettings
     {
@@ -92,9 +95,10 @@ public sealed class MuxCommand : CommandBase<MuxCommand.Settings>
 
     /// <summary>Initializes the command with the console used for output.</summary>
     /// <param name="console">The console used to render command output.</param>
-    public MuxCommand(IAnsiConsole console) : base(console)
+    public MuxCommand(IAnsiConsole console, ToolResolver toolResolver) : base(console)
     {
         // Block: Delegate console handling to the base command class.
+        _toolResolver = toolResolver;
     }
 
     protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings, CancellationToken cancellationToken)
@@ -118,7 +122,7 @@ public sealed class MuxCommand : CommandBase<MuxCommand.Settings>
             .ToList();
 
         // Block: Execute the muxing operation and report completion.
-        using var tooling = ToolingFactory.CreateTooling(settings, Console);
+        using var tooling = ToolingFactory.CreateTooling(settings, Console, _toolResolver);
         await tooling.Service.MuxSubtitlesAsync(settings.InputMkv, subtitles, output, cancellationToken)
             .ConfigureAwait(false);
         Console.MarkupLine($"[green]Muxed subtitles into[/] {Markup.Escape(output)}");

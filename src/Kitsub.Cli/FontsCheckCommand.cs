@@ -1,5 +1,6 @@
 // Summary: Implements the CLI command that inspects MKV files for font attachments.
 using Kitsub.Tooling;
+using Kitsub.Tooling.Provisioning;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -8,6 +9,8 @@ namespace Kitsub.Cli;
 /// <summary>Executes font attachment checks for MKV files.</summary>
 public sealed class FontsCheckCommand : CommandBase<FontsCheckCommand.Settings>
 {
+    private readonly ToolResolver _toolResolver;
+
     /// <summary>Defines command-line settings for checking font attachments.</summary>
     public sealed class Settings : ToolSettings
     {
@@ -26,15 +29,16 @@ public sealed class FontsCheckCommand : CommandBase<FontsCheckCommand.Settings>
 
     /// <summary>Initializes the command with the console used for output.</summary>
     /// <param name="console">The console used to render command output.</param>
-    public FontsCheckCommand(IAnsiConsole console) : base(console)
+    public FontsCheckCommand(IAnsiConsole console, ToolResolver toolResolver) : base(console)
     {
         // Block: Delegate console handling to the base command class.
+        _toolResolver = toolResolver;
     }
 
     protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         // Block: Create tooling services scoped to this command execution.
-        using var tooling = ToolingFactory.CreateTooling(settings, Console);
+        using var tooling = ToolingFactory.CreateTooling(settings, Console, _toolResolver);
         if (settings.DryRun)
         {
             // Block: Render the identify command without executing it.

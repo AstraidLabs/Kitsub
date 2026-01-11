@@ -11,13 +11,9 @@
     <Content Include="favicon.ico" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="tools/**">
+    <Content Include="tools/**" Condition="Exists('tools')">
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="ToolsManifest.json" />
-    <EmbeddedResource Include="tools-archives/*.zip" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Kitsub.Core/Kitsub.Core.csproj" />

@@ -1,5 +1,6 @@
 // Summary: Provides mkvmerge-based muxing operations for subtitles and font attachments.
 using Kitsub.Core;
+using Kitsub.Tooling.Provisioning;
 using Microsoft.Extensions.Logging;
 
 namespace Kitsub.Tooling;
@@ -17,7 +18,7 @@ public sealed class MkvmergeMuxer
     ];
 
     private readonly IExternalToolRunner _runner;
-    private readonly Bundling.ToolPathsResolved _paths;
+    private readonly ToolResolution _paths;
     private readonly ExternalToolRunOptions _options;
     private readonly ILogger<MkvmergeMuxer> _logger;
 
@@ -28,7 +29,7 @@ public sealed class MkvmergeMuxer
     /// <param name="logger">The logger used for diagnostic messages.</param>
     public MkvmergeMuxer(
         IExternalToolRunner runner,
-        Bundling.ToolPathsResolved paths,
+        ToolResolution paths,
         ExternalToolRunOptions options,
         ILogger<MkvmergeMuxer> logger)
     {

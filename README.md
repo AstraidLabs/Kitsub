@@ -10,31 +10,37 @@ Kitsub is a cross-platform toolkit for video, audio, and subtitle workflows. The
 
 ## Prerequisites
 
-Bundled binaries are included in release builds, so end users can run Kitsub without preinstalling tools. If you are running from source without packaged tools, ensure the external tools are in `PATH` or pass custom paths via options.
+On Windows, Kitsub can provision `ffmpeg/ffprobe` and `mkvmerge/mkvpropedit` automatically. If you are running from source without packaged tools, ensure the external tools are in `PATH` or pass custom paths via options.
 
 - `ffmpeg`, `ffprobe`
 - `mkvmerge`, `mkvpropedit`
 
-## Bundled Tools
+## Bundled Tools (Windows)
 
-Release builds ship with bundled `ffmpeg/ffprobe` and `mkvmerge/mkvpropedit` binaries for supported RIDs. By default, Kitsub resolves tools from `tools/<rid>/...` next to the executable. For single-file publishing, the CLI can extract embedded tool archives into a cache directory:
+Kitsub ships a pinned manifest at `src/Kitsub.Tooling/Tools/ToolsManifest.json` that describes Windows tool archives and SHA256 sources. Tool resolution follows this order:
 
-- Windows: `%LOCALAPPDATA%/Kitsub/tools/<rid>/<toolsetVersion>/`
-- Linux/macOS: `~/.kitsub/tools/<rid>/<toolsetVersion>/`
+1. User overrides (`--ffmpeg`, `--ffprobe`, `--mkvmerge`, `--mkvpropedit`)
+2. Portable bundled tools next to the app (`tools/win-x64/...`)
+3. Cached provisioned tools in `%LOCALAPPDATA%/Kitsub/tools/win-x64/<toolsetVersion>/`
+4. PATH fallback
 
-Developers can update bundled tools using the helper scripts:
-
-```bash
-./scripts/fetch-tools.sh
-./scripts/package-tools.sh
-```
+To stage portable tools beside the CLI for publishing, run:
 
 ```powershell
 ./scripts/fetch-tools.ps1
-./scripts/package-tools.ps1
 ```
 
-`fetch-tools` downloads and stages vendor binaries under `vendor/` and regenerates `ToolsManifest.json` with hashes. `package-tools` stages publish-ready binaries under `src/Kitsub.Cli/tools/` and creates embedded archives under `src/Kitsub.Cli/tools-archives/`.
+The CLI also exposes tooling commands:
+
+- `kitsub tools status` – show resolved tool paths and sources
+- `kitsub tools fetch` – download and cache tool binaries
+- `kitsub tools clean --yes` – delete the cached toolset
+
+To publish a Windows build:
+
+```powershell
+./scripts/publish-win.ps1
+```
 
 ## Build
 
