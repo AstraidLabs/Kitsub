@@ -1,125 +1,184 @@
 # Kitsub
 
-Kitsub is a cross-platform toolkit for video, audio, and subtitle workflows. The solution is split into a core library, tooling wrappers for external media tools, and a thin CLI layer based on Spectre.Console.
+Kitsub is a Windows-focused (.NET 10) CLI for video, audio, and subtitle workflows
+commonly used in anime/fansub pipelines. It wraps FFmpeg/ffprobe and MKVToolNix
+(mkvmerge/mkvpropedit) and can provision those tools automatically.
 
-## Projects
+## Key Features
 
-- `src/Kitsub.Core` – models and shared utilities.
-- `src/Kitsub.Tooling` – process runner, ffmpeg/ffprobe/mkvmerge/mkvpropedit clients, and operations.
-- `src/Kitsub.Cli` – Spectre.Console CLI commands.
+- Inspect media streams and metadata.
+- Mux subtitle tracks into MKV files.
+- Check required fonts and attach them to MKV containers.
+- Extract audio, video, and subtitle streams.
+- Burn subtitles into video.
+- Convert subtitles between common formats (basic).
+- File logging with rolling logs via Serilog.
+- Dry-run and verbose output for safe previews.
+- Tool provisioning (bundled or cached) with status reporting.
 
-## Prerequisites
+## Requirements
 
-On Windows, Kitsub can provision `ffmpeg/ffprobe` and `mkvmerge/mkvpropedit` automatically. If you are running from source without packaged tools, ensure the external tools are in `PATH` or pass custom paths via options.
+- Windows x64.
+- .NET 10 runtime (or a self-contained release build).
+- Disk space for bundled tools and/or cached downloads.
 
-- `ffmpeg`, `ffprobe`
-- `mkvmerge`, `mkvpropedit`
+## Installation
 
-## Bundled Tools (Windows)
+**Option A: Download release ZIP (portable)**
 
-Kitsub ships a pinned manifest at `src/Kitsub.Tooling/Tools/ToolsManifest.json` that describes Windows tool archives and SHA256 sources. Tool resolution follows this order:
+1. Download the Windows release ZIP.
+2. Extract it anywhere.
+3. Run `kitsub.exe` from that folder.
 
-1. User overrides (`--ffmpeg`, `--ffprobe`, `--mkvmerge`, `--mkvpropedit`)
-2. Portable bundled tools next to the app (`tools/win-x64/...`)
-3. Cached provisioned tools in `%LOCALAPPDATA%/Kitsub/tools/win-x64/<toolsetVersion>/`
+**Option B: Build from source**
+
+```powershell
+# Build
+ dotnet build Kitsub.sln
+
+# Publish a Windows build
+ dotnet publish src/Kitsub.Cli -c Release -r win-x64 --self-contained false
+```
+
+**.NET global tool**
+
+Planned. (If this becomes available it will be documented here.)
+
+## Quick Start
+
+```powershell
+# Inspect a file
+ kitsub inspect "[SubsPlease] Frieren - 01 (1080p).mkv"
+```
+
+```powershell
+# Mux subtitles into an MKV
+ kitsub mux --in "[SubsPlease] Frieren - 01 (1080p).mkv" \
+   --sub "[SubsPlease] Frieren - 01.en.ass" --lang eng --title "English" \
+   --default --out "Frieren - 01.with-subs.mkv"
+```
+
+```powershell
+# Check fonts required by subtitle tracks
+ kitsub fonts check --in "Frieren - 01.with-subs.mkv"
+```
+
+```powershell
+# Attach fonts from a folder
+ kitsub fonts attach --in "Frieren - 01.with-subs.mkv" --dir .\fonts \
+   --out "Frieren - 01.fonts.mkv"
+```
+
+```powershell
+# Extract streams
+ kitsub extract audio --in "Frieren - 01.fonts.mkv" --track 0 --out "frieren-01.audio.mka"
+ kitsub extract sub --in "Frieren - 01.fonts.mkv" --track eng --out "frieren-01.subs.ass"
+ kitsub extract video --in "Frieren - 01.fonts.mkv" --out "frieren-01.video.mkv"
+```
+
+```powershell
+# Burn subtitles into video
+ kitsub burn --in "Frieren - 01.fonts.mkv" --sub "frieren-01.subs.ass" \
+   --out "frieren-01.burned.mp4" --crf 18 --preset medium
+```
+
+```powershell
+# Tools status and fetch
+ kitsub tools status
+ kitsub tools fetch
+```
+
+## Commands
+
+- `inspect` — Inspect media streams and metadata.
+- `mux` — Add subtitle tracks to an MKV.
+- `burn` — Burn subtitles into video.
+- `convert sub` — Convert subtitles between formats.
+- `fonts check` — Report missing/required fonts.
+- `fonts attach` — Attach fonts to an MKV.
+- `extract audio` — Extract audio streams.
+- `extract video` — Extract video streams.
+- `extract sub` — Extract subtitle streams.
+- `tools status` — Show resolved tool paths and sources.
+- `tools fetch` — Download and cache tool binaries.
+- `tools clean` — Delete cached tools.
+
+## Tool Provisioning (No Manual Installs)
+
+Kitsub resolves tool binaries automatically. You can override any tool path when
+needed, but most users never need to install FFmpeg or MKVToolNix manually.
+
+**Modes**
+
+- **Bundled:** tools are shipped under `./tools/win-x64/...` alongside the app.
+- **Cache:** tools are downloaded and extracted to
+  `%LOCALAPPDATA%\Kitsub\tools\...`.
+
+**Resolution priority**
+
+1. CLI overrides (`--ffmpeg`, `--ffprobe`, `--mkvmerge`, `--mkvpropedit`)
+2. Bundled tools next to the app
+3. Cached tools
 4. PATH fallback
 
-To stage portable tools beside the CLI for publishing, run:
+**Commands**
 
 ```powershell
-./scripts/fetch-tools.ps1
+ kitsub tools status
+ kitsub tools fetch
+ kitsub tools clean --yes
 ```
 
-The CLI also exposes tooling commands:
+**Overrides**
 
-- `kitsub tools status` – show resolved tool paths and sources
-- `kitsub tools fetch` – download and cache tool binaries
-- `kitsub tools clean --yes` – delete the cached toolset
+- `--ffmpeg`, `--ffprobe`, `--mkvmerge`, `--mkvpropedit`
+- `--tools-cache-dir`
 
-To publish a Windows build:
+## Logging
+
+Kitsub logs to rolling files via Serilog. By default, logs are written under
+`./logs/` relative to the working directory (for example `logs/kitsub.log`).
+
+**Flags**
+
+- `--log-file` — override the log file path.
+- `--log-level` — set the log level (`trace|debug|info|warn|error`).
+- `--verbose` — print commands and tool output to the console.
+- `--dry-run` — show commands without executing.
+
+**Troubleshooting workflow**
 
 ```powershell
-./scripts/publish-win.ps1
+ kitsub inspect "Frieren - 01.mkv" --verbose --log-level debug
+ # Share the log file with the issue report (redact sensitive paths if needed).
 ```
 
-## Build
+## Configuration (Optional)
 
-```bash
-# Build the solution
- dotnet build Kitsub.sln
-```
+Not yet. Planned: a user config file for default tool paths, log options, and
+preset profiles.
 
-## Run
+## Roadmap
 
-```bash
-# Run the CLI project
- dotnet run --project src/Kitsub.Cli -- --help
-```
+- AI-assisted subtitle translation (planned).
+- Batch operations.
+- Richer subtitle validation/linting.
+- Presets for common fansub release layouts.
 
-## Common Options
+## Third-Party Tools & Licenses
 
-- `--dry-run` – print the exact command(s) without executing.
-- `--verbose` – print commands and tool output.
-- `--ffmpeg`, `--ffprobe`, `--mkvmerge`, `--mkvpropedit` – override tool paths.
-- `--prefer-bundled` – prefer bundled tools (`true` by default).
-- `--prefer-path` – prefer PATH-based tools (`false` by default).
-- `--tools-cache-dir` – override the cache directory used for extracted tools.
-- `--log-file` – override the log file path (default: `logs/kitsub.log`).
-- `--log-level` – set the log level (`trace|debug|info|warn|error`).
-- `--no-log` – disable file logging and log to the console only.
+Kitsub is MIT-licensed. It uses or bundles FFmpeg and MKVToolNix under their
+respective licenses. See `THIRD_PARTY_NOTICES.md` and the `LICENSES/` directory
+for details. This is informational only and not legal advice.
 
-## Examples
+## Contributing
 
-Inspect media:
+1. Fork the repo and create a feature branch.
+2. Follow existing code style and keep changes focused.
+3. Use clear commit messages.
+4. Open a PR with context and testing notes.
 
-```bash
- dotnet run --project src/Kitsub.Cli -- inspect ./movie.mkv
-```
+## Security
 
-Mux subtitles into MKV:
-
-```bash
- dotnet run --project src/Kitsub.Cli -- mux --in ./movie.mkv --sub ./subs.en.srt --lang eng --title "English" --default --out ./movie.kitsub.mkv
-```
-
-Attach fonts:
-
-```bash
- dotnet run --project src/Kitsub.Cli -- fonts attach --in ./movie.mkv --dir ./fonts --out ./movie.fonts.mkv
-```
-
-Check fonts:
-
-```bash
- dotnet run --project src/Kitsub.Cli -- fonts check --in ./movie.mkv
-```
-
-Burn subtitles:
-
-```bash
- dotnet run --project src/Kitsub.Cli -- burn --in ./movie.mkv --sub ./subs.ass --out ./movie.burned.mp4 --crf 18 --preset medium
-```
-
-Extract audio:
-
-```bash
- dotnet run --project src/Kitsub.Cli -- extract audio --in ./movie.mkv --track 0 --out ./movie.audio.mka
-```
-
-Extract subtitles:
-
-```bash
- dotnet run --project src/Kitsub.Cli -- extract sub --in ./movie.mkv --track eng --out ./movie.subs.srt
-```
-
-Extract video:
-
-```bash
- dotnet run --project src/Kitsub.Cli -- extract video --in ./movie.mkv --out ./movie.video.mkv
-```
-
-Convert subtitles:
-
-```bash
- dotnet run --project src/Kitsub.Cli -- convert sub --in ./subs.srt --out ./subs.ass
-```
+Please report security issues privately. Do not include sensitive data in logs
+or issue reports.
