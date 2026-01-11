@@ -4,6 +4,7 @@ using Kitsub.Tooling;
 using Kitsub.Tooling.Provisioning;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
+using Xunit;
 
 namespace Kitsub.Tests.Tooling;
 

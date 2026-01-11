@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Kitsub.Tooling.Provisioning;
+using Xunit;
 
 namespace Kitsub.Tests.Tooling;
 
