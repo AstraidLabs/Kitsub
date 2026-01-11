@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kitsub.Tooling", "src\Kitsu
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kitsub", "src\Kitsub.Cli\Kitsub.csproj", "{32FEC9DB-2E94-4771-B2B2-336E53043851}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kitsub.Tests", "tests\Kitsub.Tests\Kitsub.Tests.csproj", "{C01BD659-ADE8-47EE-AEC7-9FF70039AE37}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,6 +28,10 @@ Global
 		{32FEC9DB-2E94-4771-B2B2-336E53043851}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{32FEC9DB-2E94-4771-B2B2-336E53043851}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{32FEC9DB-2E94-4771-B2B2-336E53043851}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C01BD659-ADE8-47EE-AEC7-9FF70039AE37}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C01BD659-ADE8-47EE-AEC7-9FF70039AE37}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C01BD659-ADE8-47EE-AEC7-9FF70039AE37}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C01BD659-ADE8-47EE-AEC7-9FF70039AE37}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

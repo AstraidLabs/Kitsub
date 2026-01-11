@@ -296,7 +296,7 @@ public sealed class FfmpegClient
         return $"subtitles='{escapedPath}':fontsdir='{fontsPath}'";
     }
 
-    private static string EscapeFilterPath(string path)
+    internal static string EscapeFilterPath(string path)
     {
         // Block: Escape filter path characters required by ffmpeg filters.
         var normalized = path.Replace("\\", "/");
