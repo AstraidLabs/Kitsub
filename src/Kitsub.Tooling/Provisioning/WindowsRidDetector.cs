@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 namespace Kitsub.Tooling.Provisioning;
 
 /// <summary>Detects the Windows RID and warns on non-Windows hosts.</summary>
-public sealed class WindowsRidDetector
+public class WindowsRidDetector
 {
     private readonly ILogger<WindowsRidDetector> _logger;
 
@@ -15,10 +15,10 @@ public sealed class WindowsRidDetector
     }
 
     /// <summary>Gets a value indicating whether the current OS is Windows.</summary>
-    public bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+    public virtual bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
     /// <summary>Gets the runtime identifier used for provisioning.</summary>
-    public string GetRuntimeRid()
+    public virtual string GetRuntimeRid()
     {
         if (!IsWindows)
         {

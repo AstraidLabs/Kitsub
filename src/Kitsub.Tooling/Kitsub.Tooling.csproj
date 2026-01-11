@@ -12,6 +12,9 @@
     <PackageReference Include="SharpCompress" Version="0.38.0" />
   </ItemGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="Kitsub.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <Content Include="Tools/ToolsManifest.json" CopyToOutputDirectory="Always">
       <Link>ToolsManifest.json</Link>
     </Content>
