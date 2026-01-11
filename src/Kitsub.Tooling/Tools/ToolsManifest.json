@@ -1,0 +1,27 @@
+{
+  "toolsetVersion": "2026.01",
+  "rids": {
+    "win-x64": {
+      "ffmpeg": {
+        "archiveUrl": "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.7z",
+        "sha256Url": "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.7z.sha256",
+        "archiveType": "7z",
+        "extractMap": {
+          "ffmpeg.exe": "bin/ffmpeg.exe",
+          "ffprobe.exe": "bin/ffprobe.exe"
+        }
+      },
+      "mkvtoolnix": {
+        "version": "97.0",
+        "archiveUrl": "https://mkvtoolnix.download/windows/releases/97.0/mkvtoolnix-64-bit-97.0.7z",
+        "sha256Url": "https://mkvtoolnix.download/windows/releases/97.0/sha256sums.txt",
+        "sha256Entry": "mkvtoolnix-64-bit-97.0.7z",
+        "archiveType": "7z",
+        "extractMap": {
+          "mkvmerge.exe": "mkvmerge.exe",
+          "mkvpropedit.exe": "mkvpropedit.exe"
+        }
+      }
+    }
+  }
+}

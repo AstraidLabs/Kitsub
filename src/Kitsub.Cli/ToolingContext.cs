@@ -1,5 +1,6 @@
 // Summary: Encapsulates tool execution services, paths, and run options for CLI commands.
 using Kitsub.Tooling;
+using Kitsub.Tooling.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Kitsub.Cli;
@@ -13,7 +14,7 @@ public sealed class ToolingContext : IDisposable
     /// <param name="provider">The service provider that resolves tooling services.</param>
     /// <param name="paths">The configured external tool paths.</param>
     /// <param name="runOptions">The execution options for external tools.</param>
-    public ToolingContext(ServiceProvider provider, ToolPaths paths, ExternalToolRunOptions runOptions)
+    public ToolingContext(ServiceProvider provider, ToolResolution paths, ExternalToolRunOptions runOptions)
     {
         // Block: Store the service provider and configuration for downstream tool usage.
         _provider = provider;
@@ -22,7 +23,7 @@ public sealed class ToolingContext : IDisposable
     }
 
     /// <summary>Gets the configured external tool paths.</summary>
-    public ToolPaths Paths { get; }
+    public ToolResolution Paths { get; }
     /// <summary>Gets the execution options used for external tool runs.</summary>
     public ExternalToolRunOptions RunOptions { get; }
 

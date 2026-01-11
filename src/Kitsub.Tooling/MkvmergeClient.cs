@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.Text.Json;
 using Kitsub.Core;
+using Kitsub.Tooling.Provisioning;
 using Microsoft.Extensions.Logging;
 
 namespace Kitsub.Tooling;
@@ -10,7 +11,7 @@ namespace Kitsub.Tooling;
 public sealed class MkvmergeClient
 {
     private readonly IExternalToolRunner _runner;
-    private readonly ToolPaths _paths;
+    private readonly ToolResolution _paths;
     private readonly ExternalToolRunOptions _options;
     private readonly ILogger<MkvmergeClient> _logger;
 
@@ -21,7 +22,7 @@ public sealed class MkvmergeClient
     /// <param name="logger">The logger used for diagnostic messages.</param>
     public MkvmergeClient(
         IExternalToolRunner runner,
-        ToolPaths paths,
+        ToolResolution paths,
         ExternalToolRunOptions options,
         ILogger<MkvmergeClient> logger)
     {
@@ -62,7 +63,7 @@ public sealed class MkvmergeClient
     {
         // Block: Assemble mkvmerge arguments for JSON output.
         var args = new List<string> { "-J", filePath };
-        return new ToolCommand(_paths.Mkvmerge, args);
+        return new ToolCommand(_paths.Mkvmerge.Path, args);
     }
 
     private static MediaInfo ParseMediaInfo(string filePath, string json)

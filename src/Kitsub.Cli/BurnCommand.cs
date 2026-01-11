@@ -1,5 +1,6 @@
 // Summary: Implements the CLI command that burns subtitles into video output.
 using Kitsub.Tooling;
+using Kitsub.Tooling.Provisioning;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -8,6 +9,8 @@ namespace Kitsub.Cli;
 /// <summary>Executes the burn command to render subtitles into a video file.</summary>
 public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
 {
+    private readonly ToolResolver _toolResolver;
+
     /// <summary>Defines command-line settings for burning subtitles.</summary>
     public sealed class Settings : ToolSettings
     {
@@ -94,15 +97,16 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
 
     /// <summary>Initializes the command with the console used for output.</summary>
     /// <param name="console">The console used to render command output.</param>
-    public BurnCommand(IAnsiConsole console) : base(console)
+    public BurnCommand(IAnsiConsole console, ToolResolver toolResolver) : base(console)
     {
         // Block: Delegate console handling to the base command class.
+        _toolResolver = toolResolver;
     }
 
     protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         // Block: Create tooling services scoped to this command execution.
-        using var tooling = ToolingFactory.CreateTooling(settings, Console);
+        using var tooling = ToolingFactory.CreateTooling(settings, Console, _toolResolver);
         if (settings.DryRun)
         {
             // Block: Render the external tool commands without executing them.

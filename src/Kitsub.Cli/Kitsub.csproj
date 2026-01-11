@@ -11,6 +11,11 @@
     <Content Include="favicon.ico" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="tools/**" Condition="Exists('tools')">
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../Kitsub.Core/Kitsub.Core.csproj" />
     <ProjectReference Include="../Kitsub.Tooling/Kitsub.Tooling.csproj" />
   </ItemGroup>

@@ -8,19 +8,31 @@ public abstract class ToolSettings : CommandSettings
 {
     [CommandOption("--ffmpeg <PATH>")]
     /// <summary>Gets the path or command name used to invoke ffmpeg.</summary>
-    public string FfmpegPath { get; init; } = "ffmpeg";
+    public string? FfmpegPath { get; init; }
 
     [CommandOption("--ffprobe <PATH>")]
     /// <summary>Gets the path or command name used to invoke ffprobe.</summary>
-    public string FfprobePath { get; init; } = "ffprobe";
+    public string? FfprobePath { get; init; }
 
     [CommandOption("--mkvmerge <PATH>")]
     /// <summary>Gets the path or command name used to invoke mkvmerge.</summary>
-    public string MkvmergePath { get; init; } = "mkvmerge";
+    public string? MkvmergePath { get; init; }
 
     [CommandOption("--mkvpropedit <PATH>")]
     /// <summary>Gets the path or command name used to invoke mkvpropedit.</summary>
-    public string MkvpropeditPath { get; init; } = "mkvpropedit";
+    public string? MkvpropeditPath { get; init; }
+
+    [CommandOption("--prefer-bundled <BOOL>")]
+    /// <summary>Gets a value indicating whether bundled tools are preferred.</summary>
+    public bool PreferBundled { get; init; } = true;
+
+    [CommandOption("--prefer-path <BOOL>")]
+    /// <summary>Gets a value indicating whether PATH resolution is preferred.</summary>
+    public bool PreferPath { get; init; }
+
+    [CommandOption("--tools-cache-dir <PATH>")]
+    /// <summary>Gets an optional override for the tools cache directory.</summary>
+    public string? ToolsCacheDir { get; init; }
 
     [CommandOption("--dry-run")]
     /// <summary>Gets a value indicating whether commands should run without making changes.</summary>
