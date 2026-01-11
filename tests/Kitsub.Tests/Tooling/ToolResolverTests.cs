@@ -15,7 +15,7 @@ public class ToolResolverTests
     [Fact]
     public void Resolve_ShouldPreferOverridesWhenPresent()
     {
-        var (resolver, ridEntry) = CreateResolver();
+        var (resolver, ridEntry, _) = CreateResolver();
         var bundledRoot = CreateBundledToolset(ridEntry);
         var overridePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "ffmpeg.exe");
         Directory.CreateDirectory(Path.GetDirectoryName(overridePath)!);
@@ -42,7 +42,7 @@ public class ToolResolverTests
     [Fact]
     public void Resolve_ShouldUseBundledWhenPreferredAndAvailable()
     {
-        var (resolver, ridEntry) = CreateResolver();
+        var (resolver, ridEntry, _) = CreateResolver();
         var bundledRoot = CreateBundledToolset(ridEntry);
 
         try
