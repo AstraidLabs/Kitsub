@@ -1,6 +1,7 @@
 // Summary: Implements the CLI command that inspects media files and renders track metadata.
 using Kitsub.Core;
 using Kitsub.Tooling;
+using Kitsub.Tooling.Provisioning;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -9,6 +10,8 @@ namespace Kitsub.Cli;
 /// <summary>Executes media inspection and renders track metadata to the console.</summary>
 public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
 {
+    private readonly ToolResolver _toolResolver;
+
     /// <summary>Defines command-line settings for media inspection.</summary>
     public sealed class Settings : ToolSettings
     {
@@ -27,15 +30,16 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
 
     /// <summary>Initializes the command with the console used for output.</summary>
     /// <param name="console">The console used to render command output.</param>
-    public InspectCommand(IAnsiConsole console) : base(console)
+    public InspectCommand(IAnsiConsole console, ToolResolver toolResolver) : base(console)
     {
         // Block: Delegate console handling to the base command class.
+        _toolResolver = toolResolver;
     }
 
     protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         // Block: Create tooling services scoped to this command execution.
-        using var tooling = ToolingFactory.CreateTooling(settings, Console);
+        using var tooling = ToolingFactory.CreateTooling(settings, Console, _toolResolver);
         if (settings.DryRun)
         {
             if (Path.GetExtension(settings.FilePath).Equals(".mkv", StringComparison.OrdinalIgnoreCase))

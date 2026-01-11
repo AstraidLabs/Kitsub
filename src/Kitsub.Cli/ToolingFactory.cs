@@ -1,6 +1,6 @@
 // Summary: Builds tooling contexts, logging, and run options used by CLI commands.
 using Kitsub.Tooling;
-using Kitsub.Tooling.Bundling;
+using Kitsub.Tooling.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Events;
@@ -16,11 +16,11 @@ public static class ToolingFactory
 
     /// <summary>Builds the tool path configuration from command settings.</summary>
     /// <param name="settings">The settings containing external tool paths.</param>
-    /// <returns>A <see cref="ToolPaths"/> instance populated with tool locations.</returns>
-    public static ToolPaths BuildToolPaths(ToolSettings settings)
+    /// <returns>A <see cref="ToolOverrides"/> instance populated with tool locations.</returns>
+    public static ToolOverrides BuildToolOverrides(ToolSettings settings)
     {
-        // Block: Translate CLI settings into a ToolPaths value for dependency injection.
-        return new ToolPaths(
+        // Block: Translate CLI settings into a ToolOverrides value for dependency injection.
+        return new ToolOverrides(
             settings.FfmpegPath,
             settings.FfprobePath,
             settings.MkvmergePath,
@@ -46,24 +46,20 @@ public static class ToolingFactory
     /// <param name="settings">The settings that configure tooling and logging.</param>
     /// <param name="console">The console used for optional command echo output.</param>
     /// <returns>A fully configured <see cref="ToolingContext"/> instance.</returns>
-    public static ToolingContext CreateTooling(ToolSettings settings, IAnsiConsole console)
+    public static ToolingContext CreateTooling(ToolSettings settings, IAnsiConsole console, ToolResolver resolver)
     {
         // Block: Build tool paths, run options, and logging configuration.
-        var overrides = BuildToolPaths(settings);
-        var resolverOptions = BuildResolverOptions(settings);
+        var overrides = BuildToolOverrides(settings);
+        var resolverOptions = BuildResolveOptions(settings);
         var options = BuildRunOptions(settings, console);
         var logger = CreateLogger(settings);
+        var resolved = resolver.Resolve(overrides, resolverOptions);
 
         // Block: Register tooling services and logging into a DI container.
         var services = new ServiceCollection();
-        services.AddSingleton(overrides);
-        services.AddSingleton(resolverOptions);
         services.AddSingleton(options);
+        services.AddSingleton(resolved);
         services.AddSingleton<IExternalToolRunner, ExternalToolRunner>();
-        services.AddSingleton<ToolManifestLoader>();
-        services.AddSingleton<ToolBundleManager>();
-        services.AddSingleton<ToolResolver>();
-        services.AddSingleton(sp => sp.GetRequiredService<ToolResolver>().ResolveAll(overrides));
         services.AddSingleton<FfprobeClient>();
         services.AddSingleton<MkvmergeClient>();
         services.AddSingleton<MkvmergeMuxer>();
@@ -74,7 +70,6 @@ public static class ToolingFactory
 
         // Block: Build the provider and package it into a tooling context.
         var provider = services.BuildServiceProvider();
-        var resolved = provider.GetRequiredService<ToolPathsResolved>();
         return new ToolingContext(provider, resolved, options);
     }
 
@@ -173,14 +168,16 @@ public static class ToolingFactory
         };
     }
 
-    private static ToolResolverOptions BuildResolverOptions(ToolSettings settings)
+    public static ToolResolveOptions BuildResolveOptions(ToolSettings settings)
     {
         // Block: Map CLI settings into tool resolver options.
-        return new ToolResolverOptions
+        return new ToolResolveOptions
         {
             PreferBundled = settings.PreferBundled,
             PreferPath = settings.PreferPath,
-            ToolsCacheDirectory = settings.ToolsCacheDir
+            ToolsCacheDir = settings.ToolsCacheDir,
+            DryRun = settings.DryRun,
+            Verbose = settings.Verbose
         };
     }
 }

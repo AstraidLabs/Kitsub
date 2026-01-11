@@ -1,5 +1,6 @@
 // Summary: Provides ffmpeg command construction and execution helpers for media operations.
 using System.Globalization;
+using Kitsub.Tooling.Provisioning;
 using Microsoft.Extensions.Logging;
 
 namespace Kitsub.Tooling;
@@ -8,7 +9,7 @@ namespace Kitsub.Tooling;
 public sealed class FfmpegClient
 {
     private readonly IExternalToolRunner _runner;
-    private readonly Bundling.ToolPathsResolved _paths;
+    private readonly ToolResolution _paths;
     private readonly ExternalToolRunOptions _options;
     private readonly ILogger<FfmpegClient> _logger;
 
@@ -19,7 +20,7 @@ public sealed class FfmpegClient
     /// <param name="logger">The logger used for diagnostic messages.</param>
     public FfmpegClient(
         IExternalToolRunner runner,
-        Bundling.ToolPathsResolved paths,
+        ToolResolution paths,
         ExternalToolRunOptions options,
         ILogger<FfmpegClient> logger)
     {

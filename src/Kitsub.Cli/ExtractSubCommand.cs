@@ -1,5 +1,6 @@
 // Summary: Implements the CLI command that extracts subtitle tracks from media files.
 using Kitsub.Tooling;
+using Kitsub.Tooling.Provisioning;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -8,6 +9,8 @@ namespace Kitsub.Cli;
 /// <summary>Executes subtitle extraction using external tooling.</summary>
 public sealed class ExtractSubCommand : CommandBase<ExtractSubCommand.Settings>
 {
+    private readonly ToolResolver _toolResolver;
+
     /// <summary>Defines command-line settings for subtitle extraction.</summary>
     public sealed class Settings : ToolSettings
     {
@@ -52,15 +55,16 @@ public sealed class ExtractSubCommand : CommandBase<ExtractSubCommand.Settings>
 
     /// <summary>Initializes the command with the console used for output.</summary>
     /// <param name="console">The console used to render command output.</param>
-    public ExtractSubCommand(IAnsiConsole console) : base(console)
+    public ExtractSubCommand(IAnsiConsole console, ToolResolver toolResolver) : base(console)
     {
         // Block: Delegate console handling to the base command class.
+        _toolResolver = toolResolver;
     }
 
     protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         // Block: Create tooling services scoped to this command execution.
-        using var tooling = ToolingFactory.CreateTooling(settings, Console);
+        using var tooling = ToolingFactory.CreateTooling(settings, Console, _toolResolver);
         if (settings.DryRun)
         {
             if (!int.TryParse(settings.TrackSelector, out var index))
