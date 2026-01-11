@@ -1,5 +1,6 @@
 // Summary: Builds tooling contexts, logging, and run options used by CLI commands.
 using Kitsub.Tooling;
+using Kitsub.Tooling.Bundling;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Events;
@@ -48,15 +49,21 @@ public static class ToolingFactory
     public static ToolingContext CreateTooling(ToolSettings settings, IAnsiConsole console)
     {
         // Block: Build tool paths, run options, and logging configuration.
-        var paths = BuildToolPaths(settings);
+        var overrides = BuildToolPaths(settings);
+        var resolverOptions = BuildResolverOptions(settings);
         var options = BuildRunOptions(settings, console);
         var logger = CreateLogger(settings);
 
         // Block: Register tooling services and logging into a DI container.
         var services = new ServiceCollection();
-        services.AddSingleton(paths);
+        services.AddSingleton(overrides);
+        services.AddSingleton(resolverOptions);
         services.AddSingleton(options);
         services.AddSingleton<IExternalToolRunner, ExternalToolRunner>();
+        services.AddSingleton<ToolManifestLoader>();
+        services.AddSingleton<ToolBundleManager>();
+        services.AddSingleton<ToolResolver>();
+        services.AddSingleton(sp => sp.GetRequiredService<ToolResolver>().ResolveAll(overrides));
         services.AddSingleton<FfprobeClient>();
         services.AddSingleton<MkvmergeClient>();
         services.AddSingleton<MkvmergeMuxer>();
@@ -67,7 +74,8 @@ public static class ToolingFactory
 
         // Block: Build the provider and package it into a tooling context.
         var provider = services.BuildServiceProvider();
-        return new ToolingContext(provider, paths, options);
+        var resolved = provider.GetRequiredService<ToolPathsResolved>();
+        return new ToolingContext(provider, resolved, options);
     }
 
     private static ExternalToolRunOptions BuildRunOptions(ToolSettings settings, IAnsiConsole console)
@@ -116,7 +124,7 @@ public static class ToolingFactory
         };
     }
 
-    private static Serilog.ILogger CreateLogger(ToolSettings settings)
+    internal static Serilog.ILogger CreateLogger(ToolSettings settings)
     {
         // Block: Start with a base logger configuration and parsed log level.
         var level = ParseLogLevel(settings.LogLevel);
@@ -162,6 +170,17 @@ public static class ToolingFactory
             "error" => LogEventLevel.Error,
             null or "" => LogEventLevel.Information,
             _ => throw new ValidationException($"Unknown log level: {value}")
+        };
+    }
+
+    private static ToolResolverOptions BuildResolverOptions(ToolSettings settings)
+    {
+        // Block: Map CLI settings into tool resolver options.
+        return new ToolResolverOptions
+        {
+            PreferBundled = settings.PreferBundled,
+            PreferPath = settings.PreferPath,
+            ToolsCacheDirectory = settings.ToolsCacheDir
         };
     }
 }

@@ -8,7 +8,7 @@ namespace Kitsub.Tooling;
 public sealed class MkvpropeditClient
 {
     private readonly IExternalToolRunner _runner;
-    private readonly ToolPaths _paths;
+    private readonly Bundling.ToolPathsResolved _paths;
     private readonly ExternalToolRunOptions _options;
     private readonly ILogger<MkvpropeditClient> _logger;
 
@@ -19,7 +19,7 @@ public sealed class MkvpropeditClient
     /// <param name="logger">The logger used for diagnostic messages.</param>
     public MkvpropeditClient(
         IExternalToolRunner runner,
-        ToolPaths paths,
+        Bundling.ToolPathsResolved paths,
         ExternalToolRunOptions options,
         ILogger<MkvpropeditClient> logger)
     {
@@ -110,6 +110,6 @@ public sealed class MkvpropeditClient
             args.Add($"name={name}");
         }
 
-        return new ToolCommand(_paths.Mkvpropedit, args);
+        return new ToolCommand(_paths.Mkvpropedit.Path, args);
     }
 }

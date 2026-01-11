@@ -8,7 +8,7 @@ namespace Kitsub.Tooling;
 public sealed class FfmpegClient
 {
     private readonly IExternalToolRunner _runner;
-    private readonly ToolPaths _paths;
+    private readonly Bundling.ToolPathsResolved _paths;
     private readonly ExternalToolRunOptions _options;
     private readonly ILogger<FfmpegClient> _logger;
 
@@ -19,7 +19,7 @@ public sealed class FfmpegClient
     /// <param name="logger">The logger used for diagnostic messages.</param>
     public FfmpegClient(
         IExternalToolRunner runner,
-        ToolPaths paths,
+        Bundling.ToolPathsResolved paths,
         ExternalToolRunOptions options,
         ILogger<FfmpegClient> logger)
     {
@@ -189,7 +189,7 @@ public sealed class FfmpegClient
             outputFile
         };
 
-        return new ToolCommand(_paths.Ffmpeg, args);
+        return new ToolCommand(_paths.Ffmpeg.Path, args);
     }
 
     /// <summary>Builds the ffmpeg command to extract a subtitle stream.</summary>
@@ -209,7 +209,7 @@ public sealed class FfmpegClient
             outputFile
         };
 
-        return new ToolCommand(_paths.Ffmpeg, args);
+        return new ToolCommand(_paths.Ffmpeg.Path, args);
     }
 
     /// <summary>Builds the ffmpeg command to convert subtitle formats.</summary>
@@ -227,7 +227,7 @@ public sealed class FfmpegClient
         {
             // Block: Support SRT to ASS conversion with a basic ffmpeg call.
             var args = new List<string> { "-y", "-i", inputFile, outputFile };
-            return new ToolCommand(_paths.Ffmpeg, args);
+            return new ToolCommand(_paths.Ffmpeg.Path, args);
         }
 
         if (inputExtension == ".ass" && outputExtension == ".srt")
@@ -257,7 +257,7 @@ public sealed class FfmpegClient
             outputFile
         };
 
-        return new ToolCommand(_paths.Ffmpeg, args);
+        return new ToolCommand(_paths.Ffmpeg.Path, args);
     }
 
     /// <summary>Builds the ffmpeg command to extract the primary video stream.</summary>
@@ -276,7 +276,7 @@ public sealed class FfmpegClient
             outputFile
         };
 
-        return new ToolCommand(_paths.Ffmpeg, args);
+        return new ToolCommand(_paths.Ffmpeg.Path, args);
     }
 
     private static string BuildSubtitlesFilter(string subtitleFile, string? fontsDir)

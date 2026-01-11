@@ -10,7 +10,7 @@ namespace Kitsub.Tooling;
 public sealed class FfprobeClient
 {
     private readonly IExternalToolRunner _runner;
-    private readonly ToolPaths _paths;
+    private readonly Bundling.ToolPathsResolved _paths;
     private readonly ExternalToolRunOptions _options;
     private readonly ILogger<FfprobeClient> _logger;
 
@@ -21,7 +21,7 @@ public sealed class FfprobeClient
     /// <param name="logger">The logger used for diagnostic messages.</param>
     public FfprobeClient(
         IExternalToolRunner runner,
-        ToolPaths paths,
+        Bundling.ToolPathsResolved paths,
         ExternalToolRunOptions options,
         ILogger<FfprobeClient> logger)
     {
@@ -69,7 +69,7 @@ public sealed class FfprobeClient
             filePath
         };
 
-        return new ToolCommand(_paths.Ffprobe, args);
+        return new ToolCommand(_paths.Ffprobe.Path, args);
     }
 
     private static MediaInfo ParseMediaInfo(string filePath, string json)

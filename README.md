@@ -10,10 +10,31 @@ Kitsub is a cross-platform toolkit for video, audio, and subtitle workflows. The
 
 ## Prerequisites
 
-Install the external tools and ensure they are in `PATH` or pass custom paths via options:
+Bundled binaries are included in release builds, so end users can run Kitsub without preinstalling tools. If you are running from source without packaged tools, ensure the external tools are in `PATH` or pass custom paths via options.
 
 - `ffmpeg`, `ffprobe`
 - `mkvmerge`, `mkvpropedit`
+
+## Bundled Tools
+
+Release builds ship with bundled `ffmpeg/ffprobe` and `mkvmerge/mkvpropedit` binaries for supported RIDs. By default, Kitsub resolves tools from `tools/<rid>/...` next to the executable. For single-file publishing, the CLI can extract embedded tool archives into a cache directory:
+
+- Windows: `%LOCALAPPDATA%/Kitsub/tools/<rid>/<toolsetVersion>/`
+- Linux/macOS: `~/.kitsub/tools/<rid>/<toolsetVersion>/`
+
+Developers can update bundled tools using the helper scripts:
+
+```bash
+./scripts/fetch-tools.sh
+./scripts/package-tools.sh
+```
+
+```powershell
+./scripts/fetch-tools.ps1
+./scripts/package-tools.ps1
+```
+
+`fetch-tools` downloads and stages vendor binaries under `vendor/` and regenerates `ToolsManifest.json` with hashes. `package-tools` stages publish-ready binaries under `src/Kitsub.Cli/tools/` and creates embedded archives under `src/Kitsub.Cli/tools-archives/`.
 
 ## Build
 
@@ -34,6 +55,9 @@ Install the external tools and ensure they are in `PATH` or pass custom paths vi
 - `--dry-run` – print the exact command(s) without executing.
 - `--verbose` – print commands and tool output.
 - `--ffmpeg`, `--ffprobe`, `--mkvmerge`, `--mkvpropedit` – override tool paths.
+- `--prefer-bundled` – prefer bundled tools (`true` by default).
+- `--prefer-path` – prefer PATH-based tools (`false` by default).
+- `--tools-cache-dir` – override the cache directory used for extracted tools.
 - `--log-file` – override the log file path (default: `logs/kitsub.log`).
 - `--log-level` – set the log level (`trace|debug|info|warn|error`).
 - `--no-log` – disable file logging and log to the console only.
