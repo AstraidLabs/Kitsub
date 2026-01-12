@@ -35,7 +35,7 @@ public sealed class SpectreProgressReporter : IProgress<ToolProvisionProgress>
 
     public static bool CanRender(IAnsiConsole console)
     {
-        return !console.Profile.Out.IsRedirected && console.Profile.Capabilities.Ansi;
+        return console.Profile.Out.IsTerminal && console.Profile.Capabilities.Ansi;
     }
 
     public static T RunWithProgress<T>(IAnsiConsole console, Func<IProgress<ToolProvisionProgress>, T> action)
