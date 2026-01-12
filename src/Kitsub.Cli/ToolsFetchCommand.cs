@@ -27,11 +27,14 @@ public sealed class ToolsFetchCommand : CommandBase<ToolsFetchCommand.Settings>
     protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         var options = ToolingFactory.BuildResolveOptions(settings);
-        var result = await _bundleManager.EnsureCachedToolsetAsync(
-            _ridDetector.GetRuntimeRid(),
-            options,
-            cancellationToken,
-            force: true).ConfigureAwait(false);
+        var result = await SpectreProgressReporter.RunWithProgressAsync(
+            Console,
+            progress => _bundleManager.EnsureCachedToolsetAsync(
+                _ridDetector.GetRuntimeRid(),
+                options,
+                cancellationToken,
+                force: true,
+                progress)).ConfigureAwait(false);
 
         if (result is null)
         {
