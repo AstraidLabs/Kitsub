@@ -53,7 +53,9 @@ public static class ToolingFactory
         var resolverOptions = BuildResolveOptions(settings);
         var options = BuildRunOptions(settings, console);
         var logger = CreateLogger(settings);
-        var resolved = resolver.Resolve(overrides, resolverOptions);
+        var resolved = SpectreProgressReporter.RunWithProgress(
+            console,
+            progress => resolver.Resolve(overrides, resolverOptions, progress));
 
         // Block: Register tooling services and logging into a DI container.
         var services = new ServiceCollection();

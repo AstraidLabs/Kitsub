@@ -1,10 +1,11 @@
 // Summary: Manages downloading and extracting Windows tool archives.
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Kitsub.Tooling;
 using Microsoft.Extensions.Logging;
-using SharpCompress.Archives.SevenZip;
+using SevenZipExtractor;
 
 namespace Kitsub.Tooling.Provisioning;
 
@@ -61,7 +62,8 @@ public sealed class ToolBundleManager
         string rid,
         ToolResolveOptions options,
         CancellationToken cancellationToken,
-        bool force)
+        bool force,
+        IProgress<ToolProvisionProgress>? progress = null)
     {
         if (!Manifest.Rids.TryGetValue(rid, out var ridEntry))
         {
@@ -94,9 +96,9 @@ public sealed class ToolBundleManager
         }
 
         _logger.LogInformation("Provisioning tools into cache {Directory}", toolsetRoot);
-        await ProvisionToolAsync("ffmpeg", ridEntry.Ffmpeg!, Path.Combine(toolsetRoot, "ffmpeg"), cancellationToken)
+        await ProvisionToolAsync("ffmpeg", ridEntry.Ffmpeg!, Path.Combine(toolsetRoot, "ffmpeg"), cancellationToken, progress)
             .ConfigureAwait(false);
-        await ProvisionToolAsync("mkvtoolnix", ridEntry.Mkvtoolnix!, Path.Combine(toolsetRoot, "mkvtoolnix"), cancellationToken)
+        await ProvisionToolAsync("mkvtoolnix", ridEntry.Mkvtoolnix!, Path.Combine(toolsetRoot, "mkvtoolnix"), cancellationToken, progress)
             .ConfigureAwait(false);
 
         WriteToolHashes(paths, toolsetRoot);
@@ -218,7 +220,8 @@ public sealed class ToolBundleManager
         string toolName,
         ToolArchiveDefinition definition,
         string toolRoot,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IProgress<ToolProvisionProgress>? progress)
     {
         if (!string.Equals(definition.ArchiveType, "7z", StringComparison.OrdinalIgnoreCase))
         {
@@ -236,32 +239,50 @@ public sealed class ToolBundleManager
         Directory.CreateDirectory(tempDirectory);
         var archivePath = Path.Combine(tempDirectory, Path.GetFileName(new Uri(definition.ArchiveUrl).AbsolutePath));
 
-        _logger.LogInformation("Downloading {Tool} archive from {Url}", toolName, definition.ArchiveUrl);
-        await DownloadFileAsync(definition.ArchiveUrl, archivePath, cancellationToken).ConfigureAwait(false);
-
-        var expectedHash = await ResolveExpectedHashAsync(definition, cancellationToken).ConfigureAwait(false);
-        var actualHash = ComputeSha256(archivePath);
-        _logger.LogDebug("{Tool} archive SHA256: {Hash}", toolName, actualHash);
-
-        if (!string.Equals(expectedHash, actualHash, StringComparison.OrdinalIgnoreCase))
+        try
         {
-            throw new InvalidOperationException($"SHA256 verification failed for {toolName} archive.");
+            _logger.LogInformation("Starting download for {Tool} from {Url}", toolName, definition.ArchiveUrl);
+            await DownloadFileAsync(toolName, definition.ArchiveUrl, archivePath, progress, cancellationToken).ConfigureAwait(false);
+            _logger.LogInformation("Completed download for {Tool}", toolName);
+
+            var expectedHash = await ResolveExpectedHashAsync(definition, cancellationToken).ConfigureAwait(false);
+            var actualHash = ComputeSha256(archivePath);
+            _logger.LogDebug("{Tool} archive SHA256: {Hash}", toolName, actualHash);
+
+            if (!string.Equals(expectedHash, actualHash, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"SHA256 verification failed for {toolName} archive.");
+            }
+
+            _logger.LogInformation("Starting extraction for {Tool}", toolName);
+            using var archive = new ArchiveFile(archivePath);
+            ExtractEntries(archive, definition.ExtractMap, toolName, toolRoot, progress);
+            _logger.LogInformation("Completed extraction for {Tool}", toolName);
         }
-
-        _logger.LogInformation("Extracting {Tool} binaries", toolName);
-        using var archive = SevenZipArchive.Open(archivePath);
-        ExtractEntries(archive, definition.ExtractMap, toolRoot);
-
-        Directory.Delete(tempDirectory, recursive: true);
+        finally
+        {
+            if (Directory.Exists(tempDirectory))
+            {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
     }
 
-    private void ExtractEntries(SevenZipArchive archive, Dictionary<string, string> extractMap, string toolRoot)
+    private void ExtractEntries(
+        ArchiveFile archive,
+        Dictionary<string, string> extractMap,
+        string toolName,
+        string toolRoot,
+        IProgress<ToolProvisionProgress>? progress)
     {
+        var totalFiles = extractMap.Count;
+        var filesDone = 0;
+
         foreach (var (toolKey, archivePath) in extractMap)
         {
             var normalized = NormalizeArchivePath(archivePath);
             var entry = archive.Entries.FirstOrDefault(e =>
-                !e.IsDirectory && NormalizeArchivePath(e.Key).EndsWith(normalized, StringComparison.OrdinalIgnoreCase));
+                !e.IsFolder && NormalizeArchivePath(e.FileName).EndsWith(normalized, StringComparison.OrdinalIgnoreCase));
 
             if (entry is null)
             {
@@ -271,9 +292,26 @@ public sealed class ToolBundleManager
             var destination = Path.Combine(toolRoot, archivePath.Replace('/', Path.DirectorySeparatorChar));
             Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
 
-            using var entryStream = entry.OpenEntryStream();
-            using var output = File.Create(destination);
-            entryStream.CopyTo(output);
+            progress?.Report(new ToolProvisionProgress
+            {
+                ToolName = toolName,
+                Stage = ToolProvisionProgress.Stage.Extract,
+                FilesTotal = totalFiles,
+                FilesDone = filesDone,
+                CurrentItem = entry.FileName
+            });
+
+            entry.Extract(destination);
+            filesDone++;
+
+            progress?.Report(new ToolProvisionProgress
+            {
+                ToolName = toolName,
+                Stage = ToolProvisionProgress.Stage.Extract,
+                FilesTotal = totalFiles,
+                FilesDone = filesDone,
+                CurrentItem = entry.FileName
+            });
         }
     }
 
@@ -284,15 +322,64 @@ public sealed class ToolBundleManager
         return ParseSha256Content(content, definition.Sha256Entry);
     }
 
-    private async Task DownloadFileAsync(string url, string destination, CancellationToken cancellationToken)
+    private async Task DownloadFileAsync(
+        string toolName,
+        string url,
+        string destination,
+        IProgress<ToolProvisionProgress>? progress,
+        CancellationToken cancellationToken)
     {
         using var response = await HttpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
             .ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
+        var totalBytes = response.Content.Headers.ContentLength;
+        var buffer = new byte[64 * 1024];
+        long totalRead = 0;
+        var stopwatch = Stopwatch.StartNew();
+        var lastReport = TimeSpan.Zero;
+        var nextReportBytes = 256L * 1024;
+
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
         await using var file = File.Create(destination);
-        await stream.CopyToAsync(file, cancellationToken).ConfigureAwait(false);
+
+        while (true)
+        {
+            var read = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+            if (read == 0)
+            {
+                break;
+            }
+
+            await file.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+            totalRead += read;
+
+            if (totalRead >= nextReportBytes || stopwatch.Elapsed - lastReport >= TimeSpan.FromMilliseconds(100))
+            {
+                ReportDownloadProgress(toolName, totalBytes, totalRead, destination, progress);
+                nextReportBytes = totalRead + (256L * 1024);
+                lastReport = stopwatch.Elapsed;
+            }
+        }
+
+        ReportDownloadProgress(toolName, totalBytes, totalRead, destination, progress);
+    }
+
+    private static void ReportDownloadProgress(
+        string toolName,
+        long? totalBytes,
+        long currentBytes,
+        string destination,
+        IProgress<ToolProvisionProgress>? progress)
+    {
+        progress?.Report(new ToolProvisionProgress
+        {
+            ToolName = toolName,
+            Stage = ToolProvisionProgress.Stage.Download,
+            TotalBytes = totalBytes,
+            CurrentBytes = currentBytes,
+            CurrentItem = Path.GetFileName(destination)
+        });
     }
 
     private static string NormalizeArchivePath(string value)
