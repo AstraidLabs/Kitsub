@@ -19,7 +19,10 @@ public sealed class ToolResolver
     }
 
     /// <summary>Resolves tool paths according to overrides, bundled tools, cache provisioning, and PATH.</summary>
-    public ToolResolution Resolve(ToolOverrides overrides, ToolResolveOptions options)
+    public ToolResolution Resolve(
+        ToolOverrides overrides,
+        ToolResolveOptions options,
+        IProgress<ToolProvisionProgress>? progress = null)
     {
         var rid = _ridDetector.GetRuntimeRid();
         var manifest = _bundleManager.Manifest;
@@ -37,7 +40,7 @@ public sealed class ToolResolver
 
             if (bundled is null && !options.PreferPath)
             {
-                cached = _bundleManager.EnsureCachedToolsetAsync(rid, options, CancellationToken.None, force: false)
+                cached = _bundleManager.EnsureCachedToolsetAsync(rid, options, CancellationToken.None, force: false, progress)
                     .GetAwaiter().GetResult();
             }
         }
