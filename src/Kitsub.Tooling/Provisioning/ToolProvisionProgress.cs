@@ -15,7 +15,7 @@ public sealed class ToolProvisionProgress
     public required string ToolName { get; init; }
 
     /// <summary>The provisioning stage for the progress update.</summary>
-    public required Stage Stage { get; init; }
+    public required Stage ProvisionStage { get; init; }
 
     /// <summary>The total bytes to download, when known.</summary>
     public long? TotalBytes { get; init; }

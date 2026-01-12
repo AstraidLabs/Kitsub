@@ -21,7 +21,7 @@ public sealed class SpectreProgressReporter : IProgress<ToolProvisionProgress>
         lock (_lock)
         {
             var task = GetOrCreateTask(value);
-            switch (value.Stage)
+            switch (value.ProvisionStage)
             {
                 case ToolProvisionProgress.Stage.Download:
                     UpdateDownloadTask(task, value);
@@ -78,13 +78,13 @@ public sealed class SpectreProgressReporter : IProgress<ToolProvisionProgress>
 
     private ProgressTask GetOrCreateTask(ToolProvisionProgress progress)
     {
-        var key = (progress.ToolName, progress.Stage);
+        var key = (progress.ToolName, progress.ProvisionStage);
         if (_tasks.TryGetValue(key, out var existing))
         {
             return existing;
         }
 
-        var description = progress.Stage switch
+        var description = progress.ProvisionStage switch
         {
             ToolProvisionProgress.Stage.Download => $"Downloading {progress.ToolName}",
             ToolProvisionProgress.Stage.Extract => $"Extracting {progress.ToolName}",

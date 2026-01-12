@@ -295,7 +295,7 @@ public sealed class ToolBundleManager
             progress?.Report(new ToolProvisionProgress
             {
                 ToolName = toolName,
-                Stage = ToolProvisionProgress.Stage.Extract,
+                ProvisionStage = ToolProvisionProgress.Stage.Extract,
                 FilesTotal = totalFiles,
                 FilesDone = filesDone,
                 CurrentItem = entry.FileName
@@ -307,7 +307,7 @@ public sealed class ToolBundleManager
             progress?.Report(new ToolProvisionProgress
             {
                 ToolName = toolName,
-                Stage = ToolProvisionProgress.Stage.Extract,
+                ProvisionStage = ToolProvisionProgress.Stage.Extract,
                 FilesTotal = totalFiles,
                 FilesDone = filesDone,
                 CurrentItem = entry.FileName
@@ -375,7 +375,7 @@ public sealed class ToolBundleManager
         progress?.Report(new ToolProvisionProgress
         {
             ToolName = toolName,
-            Stage = ToolProvisionProgress.Stage.Download,
+            ProvisionStage = ToolProvisionProgress.Stage.Download,
             TotalBytes = totalBytes,
             CurrentBytes = currentBytes,
             CurrentItem = Path.GetFileName(destination)
