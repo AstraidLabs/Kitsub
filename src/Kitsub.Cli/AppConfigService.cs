@@ -19,17 +19,17 @@ public sealed class AppConfigService
         var paths = GetPaths();
         if (!File.Exists(paths.GlobalConfigPath))
         {
-            return new ConfigStatus(paths.GlobalConfigPath, found: false, valid: true, error: null);
+            return new ConfigStatus(paths.GlobalConfigPath, Found: false, Valid: true, Error: null);
         }
 
         try
         {
             _ = _loader.LoadGlobalConfig();
-            return new ConfigStatus(paths.GlobalConfigPath, found: true, valid: true, error: null);
+            return new ConfigStatus(paths.GlobalConfigPath, Found: true, Valid: true, Error: null);
         }
         catch (ConfigurationException ex)
         {
-            return new ConfigStatus(paths.GlobalConfigPath, found: true, valid: false, error: ex.Message);
+            return new ConfigStatus(paths.GlobalConfigPath, Found: true, Valid: false, Error: ex.Message);
         }
     }
 }
