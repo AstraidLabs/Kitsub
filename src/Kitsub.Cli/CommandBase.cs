@@ -10,11 +10,13 @@ namespace Kitsub.Cli;
 public abstract class CommandBase<TSettings> : AsyncCommand<TSettings> where TSettings : ToolSettings
 {
     private readonly IAnsiConsole _console;
+    private readonly AppConfigService _configService;
 
-    protected CommandBase(IAnsiConsole console)
+    protected CommandBase(IAnsiConsole console, AppConfigService configService)
     {
         // Block: Capture the console abstraction used for user-facing output.
         _console = console;
+        _configService = configService;
     }
 
     /// <summary>Runs the command with standardized validation and exception handling.</summary>
@@ -29,37 +31,23 @@ public abstract class CommandBase<TSettings> : AsyncCommand<TSettings> where TSe
         try
         {
             // Block: Validate logging settings before invoking the core command logic.
+            EffectiveConfig = _configService.LoadEffectiveConfig();
+            ToolSettingsApplier.Apply(settings, EffectiveConfig);
             ToolingFactory.ValidateLogging(settings);
             return await ExecuteAsyncCore(context, settings, cancellationToken).ConfigureAwait(false);
         }
-        catch (ValidationException ex)
-        {
-            // Block: Surface user-facing validation errors and return a failure code.
-            _console.MarkupLine($"[red]{Markup.Escape(ex.Message)}[/]");
-            return 1;
-        }
-        catch (ExternalToolException ex)
-        {
-            // Block: Report external tool failures with optional stderr details for diagnostics.
-            _console.MarkupLine($"[red]{Markup.Escape(ex.Message)}[/]");
-            _console.MarkupLine($"[grey]{Markup.Escape(ex.Result.CommandLine)}[/]");
-            if (settings.Verbose)
-            {
-                // Block: Emit external tool stderr output when verbose logging is enabled.
-                _console.MarkupLine($"[grey]{Markup.Escape(ex.Result.StandardError)}[/]");
-            }
-
-            return 2;
-        }
         catch (Exception ex)
         {
-            // Block: Handle unexpected failures with a general error message.
-            _console.MarkupLine($"[red]{Markup.Escape(ex.Message)}[/]");
-            return 2;
+            // Block: Handle failures using standardized error handling and exit codes.
+            return CommandErrorHandler.Handle(ex, _console, settings.Verbose);
         }
     }
 
     protected IAnsiConsole Console => _console;
+
+    protected AppConfig EffectiveConfig { get; private set; } = AppConfigDefaults.CreateDefaults();
+
+    protected AppConfigService ConfigService => _configService;
 
     protected abstract Task<int> ExecuteAsyncCore(CommandContext context, TSettings settings, CancellationToken cancellationToken);
 }

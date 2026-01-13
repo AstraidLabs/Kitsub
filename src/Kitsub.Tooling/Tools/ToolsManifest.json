@@ -3,8 +3,9 @@
   "rids": {
     "win-x64": {
       "ffmpeg": {
-        "archiveUrl": "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.7z",
-        "sha256Url": "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.7z.sha256",
+        "version": "8.0.1",
+        "expectedSha256": "a0c715acca3839bfd203e600a7775b83cfe3ff928a4eceb9ca54f2982365901c",
+        "archiveUrl": "https://github.com/GyanD/codexffmpeg/releases/download/8.0.1/ffmpeg-8.0.1-essentials_build.7z",
         "archiveType": "7z",
         "extractMap": {
           "ffmpeg.exe": "bin/ffmpeg.exe",
@@ -13,6 +14,7 @@
       },
       "mkvtoolnix": {
         "version": "97.0",
+        "expectedSha256": "0000000000000000000000000000000000000000000000000000000000000000",
         "archiveUrl": "https://mkvtoolnix.download/windows/releases/97.0/mkvtoolnix-64-bit-97.0.7z",
         "sha256Url": "https://mkvtoolnix.download/windows/releases/97.0/sha256sums.txt",
         "sha256Entry": "mkvtoolnix-64-bit-97.0.7z",

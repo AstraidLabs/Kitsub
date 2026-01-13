@@ -16,39 +16,39 @@ public sealed class MuxCommand : CommandBase<MuxCommand.Settings>
     {
         [CommandOption("--in <MKV>")]
         /// <summary>Gets the input MKV file path.</summary>
-        public string InputMkv { get; init; } = string.Empty;
+        public string InputMkv { get; set; } = string.Empty;
 
         [CommandOption("--sub <FILE>")]
         /// <summary>Gets the subtitle files to mux.</summary>
-        public string[] Subtitles { get; init; } = Array.Empty<string>();
+        public string[] Subtitles { get; set; } = Array.Empty<string>();
 
         [CommandOption("--lang <ISO>")]
         /// <summary>Gets the optional language tag for subtitle tracks.</summary>
-        public string? Language { get; init; }
+        public string? Language { get; set; }
 
         [CommandOption("--title <NAME>")]
         /// <summary>Gets the optional title for subtitle tracks.</summary>
-        public string? Title { get; init; }
+        public string? Title { get; set; }
 
         [CommandOption("--default")]
         /// <summary>Gets a value indicating whether tracks should be marked as default.</summary>
-        public bool Default { get; init; }
+        public bool? Default { get; set; }
 
         [CommandOption("--no-default")]
         /// <summary>Gets a value indicating whether tracks should not be marked as default.</summary>
-        public bool NoDefault { get; init; }
+        public bool? NoDefault { get; set; }
 
         [CommandOption("--forced")]
         /// <summary>Gets a value indicating whether tracks should be marked as forced.</summary>
-        public bool Forced { get; init; }
+        public bool? Forced { get; set; }
 
         [CommandOption("--no-forced")]
         /// <summary>Gets a value indicating whether tracks should not be marked as forced.</summary>
-        public bool NoForced { get; init; }
+        public bool? NoForced { get; set; }
 
         [CommandOption("--out <FILE>")]
         /// <summary>Gets the optional output MKV file path.</summary>
-        public string? Output { get; init; }
+        public string? Output { get; set; }
 
         /// <summary>Validates the provided settings for muxing subtitles.</summary>
         /// <returns>A validation result indicating success or failure.</returns>
@@ -77,25 +77,25 @@ public sealed class MuxCommand : CommandBase<MuxCommand.Settings>
                 }
             }
 
-            if (Default && NoDefault)
+            if (Default == true && NoDefault == true)
             {
                 // Block: Prevent conflicting default flag configuration.
                 return ValidationResult.Error("Use either --default or --no-default, not both.");
             }
 
-            if (Forced && NoForced)
+            if (Forced == true && NoForced == true)
             {
                 // Block: Prevent conflicting forced flag configuration.
                 return ValidationResult.Error("Use either --forced or --no-forced, not both.");
             }
 
-            return ValidationResult.Success();
-        }
+        return ValidationResult.Success();
+    }
     }
 
     /// <summary>Initializes the command with the console used for output.</summary>
     /// <param name="console">The console used to render command output.</param>
-    public MuxCommand(IAnsiConsole console, ToolResolver toolResolver) : base(console)
+    public MuxCommand(IAnsiConsole console, ToolResolver toolResolver, AppConfigService configService) : base(console, configService)
     {
         // Block: Delegate console handling to the base command class.
         _toolResolver = toolResolver;
@@ -103,6 +103,8 @@ public sealed class MuxCommand : CommandBase<MuxCommand.Settings>
 
     protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
+        ApplyDefaults(settings);
+
         // Block: Determine the output file path when one is not explicitly provided.
         var output = settings.Output;
         if (string.IsNullOrWhiteSpace(output))
@@ -113,8 +115,16 @@ public sealed class MuxCommand : CommandBase<MuxCommand.Settings>
         }
 
         // Block: Resolve default and forced flags based on mutually exclusive options.
-        var defaultFlag = settings.Default ? true : settings.NoDefault ? false : (bool?)null;
-        var forcedFlag = settings.Forced ? true : settings.NoForced ? false : (bool?)null;
+        var defaultFlag = settings.Default == true
+            ? true
+            : settings.NoDefault == true
+                ? false
+                : EffectiveConfig.Defaults.Mux.DefaultDefaultFlag;
+        var forcedFlag = settings.Forced == true
+            ? true
+            : settings.NoForced == true
+                ? false
+                : EffectiveConfig.Defaults.Mux.DefaultForcedFlag;
 
         // Block: Build subtitle descriptors with optional metadata for muxing.
         var subtitles = settings.Subtitles
@@ -127,5 +137,12 @@ public sealed class MuxCommand : CommandBase<MuxCommand.Settings>
             .ConfigureAwait(false);
         Console.MarkupLine($"[green]Muxed subtitles into[/] {Markup.Escape(output)}");
         return 0;
+    }
+
+    private void ApplyDefaults(Settings settings)
+    {
+        var defaults = EffectiveConfig.Defaults.Mux;
+        settings.Language ??= defaults.DefaultLanguage;
+        settings.Title ??= defaults.DefaultTrackName;
     }
 }

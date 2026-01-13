@@ -102,6 +102,10 @@ Planned. (If this becomes available it will be documented here.)
 - `tools status` — Show resolved tool paths and sources.
 - `tools fetch` — Download and cache tool binaries.
 - `tools clean` — Delete cached tools.
+- `config path` — Show resolved configuration paths.
+- `config init` — Initialize the global configuration file.
+- `config show` — Display the global or effective configuration.
+- `doctor` — Run diagnostics and tool checks.
 
 ## Tool Provisioning (No Manual Installs)
 
@@ -117,9 +121,11 @@ needed, but most users never need to install FFmpeg or MKVToolNix manually.
 **Resolution priority**
 
 1. CLI overrides (`--ffmpeg`, `--ffprobe`, `--mkvmerge`, `--mkvpropedit`)
-2. Bundled tools next to the app
-3. Cached tools
-4. PATH fallback
+2. Config file overrides (global + per-tool)
+3. Environment variable overrides
+4. Bundled tools next to the app
+5. Cached tools
+6. PATH fallback
 
 **Commands**
 
@@ -133,6 +139,11 @@ needed, but most users never need to install FFmpeg or MKVToolNix manually.
 
 - `--ffmpeg`, `--ffprobe`, `--mkvmerge`, `--mkvpropedit`
 - `--tools-cache-dir`
+
+**Integrity**
+
+Provisioned archives are verified against pinned SHA256 hashes. If a secondary
+`sha256Url` is configured and differs from the pinned hash, provisioning fails.
 
 ## Logging
 
@@ -153,10 +164,65 @@ Kitsub logs to rolling files via Serilog. By default, logs are written under
  # Share the log file with the issue report (redact sensitive paths if needed).
 ```
 
-## Configuration (Optional)
+## Configuration
 
-Not yet. Planned: a user config file for default tool paths, log options, and
-preset profiles.
+**Files (Windows)**
+
+- Global config: `%APPDATA%\Kitsub\kitsub.json`
+- Per-tool override files (optional):
+  - `%APPDATA%\Kitsub\kitsub.ffmpeg.json`
+  - `%APPDATA%\Kitsub\kitsub.ffprobe.json`
+  - `%APPDATA%\Kitsub\kitsub.mkvmerge.json`
+  - `%APPDATA%\Kitsub\kitsub.mkvpropedit.json`
+
+**Precedence (lowest → highest)**
+
+1. Built-in defaults
+2. Global config
+3. Per-tool override files
+4. Environment variables
+5. CLI flags
+
+**Environment variables**
+
+- `KITSUB_CONFIG` — override the global config path.
+- `KITSUB_FFMPEG`, `KITSUB_FFPROBE`, `KITSUB_MKVMERGE`, `KITSUB_MKVPROPEDIT`
+- `KITSUB_TOOLS_CACHE_DIR`
+
+**Commands**
+
+```powershell
+kitsub config path
+kitsub config init
+kitsub config init --force
+kitsub config show
+kitsub config show --effective
+```
+
+## Doctor
+
+Run a full diagnostic sweep:
+
+```powershell
+kitsub doctor
+```
+
+The doctor command reports configuration health, tool resolution status, and
+attempts `ffmpeg -version` / `mkvmerge -V` when available.
+
+## Exit Codes
+
+| Code | Meaning |
+| ---- | ------- |
+| 0 | Success |
+| 1 | Validation/user input/config error |
+| 2 | External tool failure |
+| 3 | Provisioning/download failure |
+| 4 | Provisioning integrity failure |
+| 5 | Unexpected error |
+
+Configuration is supported for tool paths, logging, UI toggles, and command
+defaults. Use `kitsub config init` to create the baseline file.
 
 ## Roadmap
 

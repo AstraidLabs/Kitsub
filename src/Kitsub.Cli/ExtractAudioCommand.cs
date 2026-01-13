@@ -55,7 +55,7 @@ public sealed class ExtractAudioCommand : CommandBase<ExtractAudioCommand.Settin
 
     /// <summary>Initializes the command with the console used for output.</summary>
     /// <param name="console">The console used to render command output.</param>
-    public ExtractAudioCommand(IAnsiConsole console, ToolResolver toolResolver) : base(console)
+    public ExtractAudioCommand(IAnsiConsole console, ToolResolver toolResolver, AppConfigService configService) : base(console, configService)
     {
         // Block: Delegate console handling to the base command class.
         _toolResolver = toolResolver;

@@ -45,7 +45,7 @@ public sealed class ConvertSubCommand : CommandBase<ConvertSubCommand.Settings>
 
     /// <summary>Initializes the command with the console used for output.</summary>
     /// <param name="console">The console used to render command output.</param>
-    public ConvertSubCommand(IAnsiConsole console, ToolResolver toolResolver) : base(console)
+    public ConvertSubCommand(IAnsiConsole console, ToolResolver toolResolver, AppConfigService configService) : base(console, configService)
     {
         // Block: Delegate console handling to the base command class.
         _toolResolver = toolResolver;

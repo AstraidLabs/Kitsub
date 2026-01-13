@@ -16,31 +16,31 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
     {
         [CommandOption("--in <FILE>")]
         /// <summary>Gets the input media file path.</summary>
-        public string InputFile { get; init; } = string.Empty;
+        public string InputFile { get; set; } = string.Empty;
 
         [CommandOption("--sub <FILE>")]
         /// <summary>Gets the subtitle file path to burn, when provided.</summary>
-        public string? SubtitleFile { get; init; }
+        public string? SubtitleFile { get; set; }
 
         [CommandOption("--track <SELECTOR>")]
         /// <summary>Gets the subtitle track selector when burning from a media track.</summary>
-        public string? TrackSelector { get; init; }
+        public string? TrackSelector { get; set; }
 
         [CommandOption("--out <FILE>")]
         /// <summary>Gets the output media file path.</summary>
-        public string OutputFile { get; init; } = string.Empty;
+        public string OutputFile { get; set; } = string.Empty;
 
         [CommandOption("--fontsdir <DIR>")]
         /// <summary>Gets the optional directory containing fonts used for subtitles.</summary>
-        public string? FontsDir { get; init; }
+        public string? FontsDir { get; set; }
 
         [CommandOption("--crf <N>")]
         /// <summary>Gets the constant rate factor used for video encoding.</summary>
-        public int Crf { get; init; } = 18;
+        public int? Crf { get; set; }
 
         [CommandOption("--preset <NAME>")]
         /// <summary>Gets the encoder preset used for video encoding.</summary>
-        public string Preset { get; init; } = "medium";
+        public string? Preset { get; set; }
 
         /// <summary>Validates the provided settings for the burn command.</summary>
         /// <returns>A validation result indicating success or failure.</returns>
@@ -97,7 +97,7 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
 
     /// <summary>Initializes the command with the console used for output.</summary>
     /// <param name="console">The console used to render command output.</param>
-    public BurnCommand(IAnsiConsole console, ToolResolver toolResolver) : base(console)
+    public BurnCommand(IAnsiConsole console, ToolResolver toolResolver, AppConfigService configService) : base(console, configService)
     {
         // Block: Delegate console handling to the base command class.
         _toolResolver = toolResolver;
@@ -105,6 +105,9 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
 
     protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
+        ApplyDefaults(settings);
+        ValidateDefaults(settings);
+
         // Block: Create tooling services scoped to this command execution.
         using var tooling = ToolingFactory.CreateTooling(settings, Console, _toolResolver);
         if (settings.DryRun)
@@ -122,8 +125,8 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
                 settings.SubtitleFile,
                 settings.OutputFile,
                 settings.FontsDir,
-                settings.Crf,
-                settings.Preset,
+                settings.Crf!.Value,
+                settings.Preset!,
                 cancellationToken).ConfigureAwait(false);
             Console.MarkupLine($"[green]Burned subtitles into[/] {Markup.Escape(settings.OutputFile)}");
             return 0;
@@ -143,8 +146,8 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
                 tempFile,
                 settings.OutputFile,
                 settings.FontsDir,
-                settings.Crf,
-                settings.Preset,
+                settings.Crf!.Value,
+                settings.Preset!,
                 cancellationToken).ConfigureAwait(false);
             Console.MarkupLine($"[green]Burned subtitles into[/] {Markup.Escape(settings.OutputFile)}");
         }
@@ -168,7 +171,7 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
         if (!string.IsNullOrWhiteSpace(settings.SubtitleFile))
         {
             // Block: Render the burn command using the provided subtitle file.
-            Console.MarkupLine($"[grey]{Markup.Escape(ffmpeg.BuildBurnSubtitlesCommand(settings.InputFile, settings.SubtitleFile, settings.OutputFile, settings.FontsDir, settings.Crf, settings.Preset).Rendered)}[/]");
+            Console.MarkupLine($"[grey]{Markup.Escape(ffmpeg.BuildBurnSubtitlesCommand(settings.InputFile, settings.SubtitleFile, settings.OutputFile, settings.FontsDir, settings.Crf!.Value, settings.Preset!).Rendered)}[/]");
             return Task.CompletedTask;
         }
 
@@ -181,7 +184,35 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
         // Block: Render extraction and burn commands using a temporary subtitle output.
         var tempFile = Path.Combine(Path.GetTempPath(), $"kitsub_dryrun_{Guid.NewGuid():N}.ass");
         Console.MarkupLine($"[grey]{Markup.Escape(ffmpeg.BuildExtractSubtitleCommand(settings.InputFile, subtitleIndex, tempFile).Rendered)}[/]");
-        Console.MarkupLine($"[grey]{Markup.Escape(ffmpeg.BuildBurnSubtitlesCommand(settings.InputFile, tempFile, settings.OutputFile, settings.FontsDir, settings.Crf, settings.Preset).Rendered)}[/]");
+        Console.MarkupLine($"[grey]{Markup.Escape(ffmpeg.BuildBurnSubtitlesCommand(settings.InputFile, tempFile, settings.OutputFile, settings.FontsDir, settings.Crf!.Value, settings.Preset!).Rendered)}[/]");
         return Task.CompletedTask;
+    }
+
+    private void ApplyDefaults(Settings settings)
+    {
+        var defaults = EffectiveConfig.Defaults.Burn;
+        settings.Crf ??= defaults.Crf;
+        settings.Preset ??= defaults.Preset;
+        settings.FontsDir ??= defaults.FontsDir;
+
+        settings.Crf ??= 18;
+        settings.Preset ??= "medium";
+    }
+
+    private static void ValidateDefaults(Settings settings)
+    {
+        if (settings.Crf is < 0 or > 51)
+        {
+            throw new ValidationException("CRF must be between 0 and 51.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(settings.FontsDir))
+        {
+            var dirValidation = ValidationHelpers.ValidateDirectoryExists(settings.FontsDir, "Fonts directory");
+            if (!dirValidation.Successful)
+            {
+                throw new ValidationException(dirValidation.Message ?? "Fonts directory does not exist.");
+            }
+        }
     }
 }

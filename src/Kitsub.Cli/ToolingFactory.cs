@@ -3,7 +3,6 @@ using Kitsub.Tooling;
 using Kitsub.Tooling.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
-using Serilog.Events;
 using Serilog.Extensions.Logging;
 using Spectre.Console;
 
@@ -33,9 +32,9 @@ public static class ToolingFactory
     public static void ValidateLogging(ToolSettings settings)
     {
         // Block: Validate the log level string before proceeding.
-        _ = ParseLogLevel(settings.LogLevel);
+        _ = LogLevelParser.Parse(settings.LogLevel);
 
-        if (!settings.NoLog && string.IsNullOrWhiteSpace(settings.LogFile))
+        if (!(settings.NoLog ?? false) && string.IsNullOrWhiteSpace(settings.LogFile))
         {
             // Block: Enforce a log file path when logging is enabled.
             throw new ValidationException("Log file path is required unless --no-log is set.");
@@ -53,8 +52,10 @@ public static class ToolingFactory
         var resolverOptions = BuildResolveOptions(settings);
         var options = BuildRunOptions(settings, console);
         var logger = CreateLogger(settings);
+        var progressMode = settings.Progress ?? UiProgressMode.Auto;
         var resolved = SpectreProgressReporter.RunWithProgress(
             console,
+            progressMode,
             progress => resolver.Resolve(overrides, resolverOptions, progress));
 
         // Block: Register tooling services and logging into a DI container.
@@ -124,12 +125,12 @@ public static class ToolingFactory
     internal static Serilog.ILogger CreateLogger(ToolSettings settings)
     {
         // Block: Start with a base logger configuration and parsed log level.
-        var level = ParseLogLevel(settings.LogLevel);
+        var level = LogLevelParser.Parse(settings.LogLevel);
         var loggerConfiguration = new LoggerConfiguration()
             .MinimumLevel.Is(level)
             .Enrich.FromLogContext();
 
-        if (settings.NoLog)
+        if (settings.NoLog ?? false)
         {
             // Block: Send logs to the console when logging to file is disabled.
             loggerConfiguration = loggerConfiguration.WriteTo.Console(outputTemplate: OutputTemplate);
@@ -145,7 +146,7 @@ public static class ToolingFactory
             }
 
             loggerConfiguration = loggerConfiguration.WriteTo.File(
-                settings.LogFile,
+                settings.LogFile!,
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 14,
                 outputTemplate: OutputTemplate);
@@ -155,28 +156,13 @@ public static class ToolingFactory
         return loggerConfiguration.CreateLogger();
     }
 
-    private static LogEventLevel ParseLogLevel(string? value)
-    {
-        // Block: Map the configured log level text into a Serilog log level.
-        return value?.Trim().ToLowerInvariant() switch
-        {
-            "trace" => LogEventLevel.Verbose,
-            "debug" => LogEventLevel.Debug,
-            "info" => LogEventLevel.Information,
-            "warn" => LogEventLevel.Warning,
-            "error" => LogEventLevel.Error,
-            null or "" => LogEventLevel.Information,
-            _ => throw new ValidationException($"Unknown log level: {value}")
-        };
-    }
-
     public static ToolResolveOptions BuildResolveOptions(ToolSettings settings)
     {
         // Block: Map CLI settings into tool resolver options.
         return new ToolResolveOptions
         {
-            PreferBundled = settings.PreferBundled,
-            PreferPath = settings.PreferPath,
+            PreferBundled = settings.PreferBundled ?? true,
+            PreferPath = settings.PreferPath ?? false,
             ToolsCacheDir = settings.ToolsCacheDir,
             DryRun = settings.DryRun,
             Verbose = settings.Verbose

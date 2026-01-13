@@ -17,7 +17,7 @@ public sealed class ToolsStatusCommand : CommandBase<ToolsStatusCommand.Settings
 
     /// <summary>Initializes the command with the console used for output.</summary>
     /// <param name="console">The console used to render command output.</param>
-    public ToolsStatusCommand(IAnsiConsole console, ToolResolver toolResolver) : base(console)
+    public ToolsStatusCommand(IAnsiConsole console, ToolResolver toolResolver, AppConfigService configService) : base(console, configService)
     {
         _toolResolver = toolResolver;
     }

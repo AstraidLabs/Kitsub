@@ -1,6 +1,7 @@
 // Summary: Loads and validates the provisioning manifest for external tools.
 using System.Reflection;
 using System.Text.Json;
+using Kitsub.Core;
 using Microsoft.Extensions.Logging;
 
 namespace Kitsub.Tooling.Provisioning;
@@ -47,12 +48,12 @@ public sealed class ToolManifestLoader
 
         if (resourceName is null)
         {
-            throw new InvalidOperationException("Tools manifest resource not found.");
+            throw new ConfigurationException("Tools manifest resource not found.");
         }
 
         _logger.LogDebug("Loading tools manifest from embedded resource {Resource}", resourceName);
         using var stream = assembly.GetManifestResourceStream(resourceName)
-            ?? throw new InvalidOperationException("Tools manifest resource stream missing.");
+            ?? throw new ConfigurationException("Tools manifest resource stream missing.");
         using var reader = new StreamReader(stream);
         var json = reader.ReadToEnd();
         return Deserialize(json);
@@ -65,40 +66,35 @@ public sealed class ToolManifestLoader
             PropertyNameCaseInsensitive = true
         });
 
-        return manifest ?? throw new InvalidOperationException("Tools manifest is invalid.");
+        return manifest ?? throw new ConfigurationException("Tools manifest is invalid.");
     }
 
     internal static void ValidateManifest(ToolsManifest manifest)
     {
         if (string.IsNullOrWhiteSpace(manifest.ToolsetVersion))
         {
-            throw new InvalidOperationException("Tools manifest missing toolsetVersion.");
+            throw new ConfigurationException("Tools manifest missing toolsetVersion.");
         }
 
         if (manifest.Rids.Count == 0)
         {
-            throw new InvalidOperationException("Tools manifest missing RID entries.");
+            throw new ConfigurationException("Tools manifest missing RID entries.");
         }
 
         foreach (var (rid, entry) in manifest.Rids)
         {
             if (entry.Ffmpeg is null)
             {
-                throw new InvalidOperationException($"Tools manifest missing ffmpeg entry for RID {rid}.");
+                throw new ConfigurationException($"Tools manifest missing ffmpeg entry for RID {rid}.");
             }
 
             if (entry.Mkvtoolnix is null)
             {
-                throw new InvalidOperationException($"Tools manifest missing mkvtoolnix entry for RID {rid}.");
+                throw new ConfigurationException($"Tools manifest missing mkvtoolnix entry for RID {rid}.");
             }
 
             ValidateTool(entry.Ffmpeg, rid, "ffmpeg");
             ValidateTool(entry.Mkvtoolnix, rid, "mkvtoolnix");
-
-            if (string.IsNullOrWhiteSpace(entry.Mkvtoolnix.Sha256Entry))
-            {
-                throw new InvalidOperationException($"Tools manifest missing mkvtoolnix sha256Entry for RID {rid}.");
-            }
 
             EnsureExtractKey(entry.Ffmpeg.ExtractMap, "ffmpeg.exe", rid, "ffmpeg");
             EnsureExtractKey(entry.Ffmpeg.ExtractMap, "ffprobe.exe", rid, "ffmpeg");
@@ -111,22 +107,22 @@ public sealed class ToolManifestLoader
     {
         if (string.IsNullOrWhiteSpace(definition.ArchiveUrl))
         {
-            throw new InvalidOperationException($"Tools manifest missing archiveUrl for {toolName} ({rid}).");
+            throw new ConfigurationException($"Tools manifest missing archiveUrl for {toolName} ({rid}).");
         }
 
-        if (string.IsNullOrWhiteSpace(definition.Sha256Url))
+        if (string.IsNullOrWhiteSpace(definition.ExpectedSha256))
         {
-            throw new InvalidOperationException($"Tools manifest missing sha256Url for {toolName} ({rid}).");
+            throw new ConfigurationException($"Tools manifest missing expectedSha256 for {toolName} ({rid}).");
         }
 
         if (string.IsNullOrWhiteSpace(definition.ArchiveType))
         {
-            throw new InvalidOperationException($"Tools manifest missing archiveType for {toolName} ({rid}).");
+            throw new ConfigurationException($"Tools manifest missing archiveType for {toolName} ({rid}).");
         }
 
         if (definition.ExtractMap.Count == 0)
         {
-            throw new InvalidOperationException($"Tools manifest missing extractMap for {toolName} ({rid}).");
+            throw new ConfigurationException($"Tools manifest missing extractMap for {toolName} ({rid}).");
         }
     }
 
@@ -134,7 +130,7 @@ public sealed class ToolManifestLoader
     {
         if (!extractMap.ContainsKey(key))
         {
-            throw new InvalidOperationException($"Tools manifest missing extractMap entry '{key}' for {toolName} ({rid}).");
+            throw new ConfigurationException($"Tools manifest missing extractMap entry '{key}' for {toolName} ({rid}).");
         }
     }
 }
