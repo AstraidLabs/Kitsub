@@ -18,7 +18,11 @@ public sealed class ToolsFetchCommand : CommandBase<ToolsFetchCommand.Settings>
 
     /// <summary>Initializes the command with the console used for output.</summary>
     /// <param name="console">The console used to render command output.</param>
-    public ToolsFetchCommand(IAnsiConsole console, ToolBundleManager bundleManager, WindowsRidDetector ridDetector) : base(console)
+    public ToolsFetchCommand(
+        IAnsiConsole console,
+        ToolBundleManager bundleManager,
+        WindowsRidDetector ridDetector,
+        AppConfigService configService) : base(console, configService)
     {
         _bundleManager = bundleManager;
         _ridDetector = ridDetector;
@@ -27,8 +31,10 @@ public sealed class ToolsFetchCommand : CommandBase<ToolsFetchCommand.Settings>
     protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         var options = ToolingFactory.BuildResolveOptions(settings);
+        var progressMode = settings.Progress ?? UiProgressMode.Auto;
         var result = await SpectreProgressReporter.RunWithProgressAsync(
             Console,
+            progressMode,
             progress => _bundleManager.EnsureCachedToolsetAsync(
                 _ridDetector.GetRuntimeRid(),
                 options,
@@ -39,10 +45,10 @@ public sealed class ToolsFetchCommand : CommandBase<ToolsFetchCommand.Settings>
         if (result is null)
         {
             Console.MarkupLine("[red]Failed to provision tools. Check logs for details.[/]");
-            return 1;
+            return ExitCodes.ProvisioningFailure;
         }
 
         Console.MarkupLine("[green]Tools provisioned in cache.[/]");
-        return 0;
+        return ExitCodes.Success;
     }
 }

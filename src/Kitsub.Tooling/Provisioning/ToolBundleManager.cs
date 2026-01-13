@@ -1,10 +1,14 @@
 // Summary: Manages downloading and extracting Windows tool archives.
 using System.Diagnostics;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Kitsub.Core;
 using Kitsub.Tooling;
 using Microsoft.Extensions.Logging;
+using Polly;
+using Polly.Retry;
 using SevenZipExtractor;
 
 namespace Kitsub.Tooling.Provisioning;
@@ -18,6 +22,13 @@ public sealed class ToolBundleManager
     private const string LockFileName = ".provision.lock";
     private const string HashManifestName = "tool-hashes.json";
     private static readonly Regex Sha256Regex = new("[0-9a-fA-F]{64}", RegexOptions.Compiled);
+    private static readonly TimeSpan[] RetryDelays =
+    {
+        TimeSpan.FromSeconds(1),
+        TimeSpan.FromSeconds(2),
+        TimeSpan.FromSeconds(4),
+        TimeSpan.FromSeconds(8)
+    };
     private static readonly HttpClient HttpClient = new();
 
     private readonly ToolManifestLoader _manifestLoader;
@@ -225,7 +236,7 @@ public sealed class ToolBundleManager
     {
         if (!string.Equals(definition.ArchiveType, "7z", StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException($"Unsupported archive type for {toolName}: {definition.ArchiveType}.");
+            throw new ConfigurationException($"Unsupported archive type for {toolName}: {definition.ArchiveType}.");
         }
 
         if (Directory.Exists(toolRoot))
@@ -251,7 +262,7 @@ public sealed class ToolBundleManager
 
             if (!string.Equals(expectedHash, actualHash, StringComparison.OrdinalIgnoreCase))
             {
-                throw new InvalidOperationException($"SHA256 verification failed for {toolName} archive.");
+                throw new IntegrityException($"SHA256 verification failed for {toolName} archive.");
             }
 
             _logger.LogInformation("Starting extraction for {Tool}", toolName);
@@ -286,10 +297,10 @@ public sealed class ToolBundleManager
 
             if (entry is null)
             {
-                throw new InvalidOperationException($"Missing {toolKey} entry '{archivePath}' in archive.");
+                throw new IntegrityException($"Missing {toolKey} entry '{archivePath}' in archive.");
             }
 
-            var destination = Path.Combine(toolRoot, archivePath.Replace('/', Path.DirectorySeparatorChar));
+            var destination = GetSafeDestinationPath(toolRoot, archivePath, toolName, toolKey);
             Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
 
             progress?.Report(new ToolProvisionProgress
@@ -317,9 +328,24 @@ public sealed class ToolBundleManager
 
     private async Task<string> ResolveExpectedHashAsync(ToolArchiveDefinition definition, CancellationToken cancellationToken)
     {
-        var content = await HttpClient.GetStringAsync(definition.Sha256Url, cancellationToken).ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(definition.ExpectedSha256))
+        {
+            throw new ConfigurationException("Expected SHA256 value is required in the tools manifest.");
+        }
 
-        return ParseSha256Content(content, definition.Sha256Entry);
+        var expected = definition.ExpectedSha256.Trim().ToLowerInvariant();
+        if (!string.IsNullOrWhiteSpace(definition.Sha256Url))
+        {
+            var content = await HttpClient.GetStringAsync(definition.Sha256Url, cancellationToken).ConfigureAwait(false);
+            var secondary = ParseSha256Content(content, definition.Sha256Entry);
+            if (!string.Equals(expected, secondary, StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogDebug("Secondary SHA256 mismatch. Expected {Expected} but got {Actual}.", expected, secondary);
+                throw new IntegrityException("SHA256 manifest mismatch detected.");
+            }
+        }
+
+        return expected;
     }
 
     private async Task DownloadFileAsync(
@@ -329,40 +355,62 @@ public sealed class ToolBundleManager
         IProgress<ToolProvisionProgress>? progress,
         CancellationToken cancellationToken)
     {
-        using var response = await HttpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
-            .ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
-
-        var totalBytes = response.Content.Headers.ContentLength;
-        var buffer = new byte[64 * 1024];
-        long totalRead = 0;
-        var stopwatch = Stopwatch.StartNew();
-        var lastReport = TimeSpan.Zero;
-        var nextReportBytes = 256L * 1024;
-
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-        await using var file = File.Create(destination);
-
-        while (true)
+        var retryPolicy = BuildDownloadRetryPolicy(toolName, destination, cancellationToken);
+        HttpResponseMessage response;
+        try
         {
-            var read = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-            if (read == 0)
+            response = await retryPolicy.ExecuteAsync(
+                token => HttpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token),
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            if (cancellationToken.IsCancellationRequested)
             {
-                break;
+                throw;
             }
 
-            await file.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
-            totalRead += read;
-
-            if (totalRead >= nextReportBytes || stopwatch.Elapsed - lastReport >= TimeSpan.FromMilliseconds(100))
-            {
-                ReportDownloadProgress(toolName, totalBytes, totalRead, destination, progress);
-                nextReportBytes = totalRead + (256L * 1024);
-                lastReport = stopwatch.Elapsed;
-            }
+            throw new ProvisioningException($"Download failed for {toolName}.", ex);
         }
 
-        ReportDownloadProgress(toolName, totalBytes, totalRead, destination, progress);
+        using (response)
+        {
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new ProvisioningException($"Download failed for {toolName}. HTTP {(int)response.StatusCode} {response.ReasonPhrase}.");
+            }
+
+            var totalBytes = response.Content.Headers.ContentLength;
+            var buffer = new byte[64 * 1024];
+            long totalRead = 0;
+            var stopwatch = Stopwatch.StartNew();
+            var lastReport = TimeSpan.Zero;
+            var nextReportBytes = 256L * 1024;
+
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            await using var file = File.Create(destination);
+
+            while (true)
+            {
+                var read = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+                if (read == 0)
+                {
+                    break;
+                }
+
+                await file.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+                totalRead += read;
+
+                if (totalRead >= nextReportBytes || stopwatch.Elapsed - lastReport >= TimeSpan.FromMilliseconds(100))
+                {
+                    ReportDownloadProgress(toolName, totalBytes, totalRead, destination, progress);
+                    nextReportBytes = totalRead + (256L * 1024);
+                    lastReport = stopwatch.Elapsed;
+                }
+            }
+
+            ReportDownloadProgress(toolName, totalBytes, totalRead, destination, progress);
+        }
     }
 
     private static void ReportDownloadProgress(
@@ -394,7 +442,7 @@ public sealed class ToolBundleManager
             var match = Sha256Regex.Match(content);
             if (!match.Success)
             {
-                throw new InvalidOperationException("Unable to parse SHA256 from manifest source.");
+                throw new IntegrityException("Unable to parse SHA256 from manifest source.");
             }
 
             return match.Value.ToLowerInvariant();
@@ -414,7 +462,72 @@ public sealed class ToolBundleManager
             }
         }
 
-        throw new InvalidOperationException($"SHA256 entry '{sha256Entry}' not found in manifest source.");
+        throw new IntegrityException($"SHA256 entry '{sha256Entry}' not found in manifest source.");
+    }
+
+    private static bool IsTransientStatus(HttpStatusCode statusCode)
+    {
+        return statusCode == HttpStatusCode.RequestTimeout ||
+               statusCode == HttpStatusCode.TooManyRequests ||
+               (int)statusCode >= 500;
+    }
+
+    private AsyncRetryPolicy<HttpResponseMessage> BuildDownloadRetryPolicy(
+        string toolName,
+        string destination,
+        CancellationToken cancellationToken)
+    {
+        return Policy<HttpResponseMessage>
+            .Handle<HttpRequestException>()
+            .Or<TaskCanceledException>(ex => !cancellationToken.IsCancellationRequested)
+            .OrResult(response => IsTransientStatus(response.StatusCode))
+            .WaitAndRetryAsync(
+                RetryDelays.Length,
+                retryAttempt => RetryDelays[retryAttempt - 1] +
+                                TimeSpan.FromMilliseconds(Random.Shared.Next(0, 251)),
+                async (outcome, delay, retryCount, _) =>
+                {
+                    if (outcome.Result is not null)
+                    {
+                        outcome.Result.Dispose();
+                    }
+
+                    if (File.Exists(destination))
+                    {
+                        File.Delete(destination);
+                    }
+
+                    _logger.LogWarning(
+                        "Retrying download for {Tool} in {Delay} after attempt {Attempt}.",
+                        toolName,
+                        delay,
+                        retryCount);
+                    await Task.CompletedTask.ConfigureAwait(false);
+                });
+    }
+
+    private static string GetSafeDestinationPath(string toolRoot, string archivePath, string toolName, string toolKey)
+    {
+        if (Path.IsPathRooted(archivePath))
+        {
+            throw new IntegrityException($"Extract map entry '{toolKey}' for {toolName} is an absolute path.");
+        }
+
+        var segments = archivePath.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Any(segment => segment == ".."))
+        {
+            throw new IntegrityException($"Extract map entry '{toolKey}' for {toolName} contains invalid path segments.");
+        }
+
+        var destination = Path.GetFullPath(Path.Combine(toolRoot, archivePath.Replace('/', Path.DirectorySeparatorChar)));
+        var root = Path.GetFullPath(toolRoot);
+        if (!destination.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(destination, root, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new IntegrityException($"Extract map entry '{toolKey}' for {toolName} escapes the tool root.");
+        }
+
+        return destination;
     }
 
     private sealed class ToolHashManifest

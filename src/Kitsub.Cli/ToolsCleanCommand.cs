@@ -21,7 +21,11 @@ public sealed class ToolsCleanCommand : CommandBase<ToolsCleanCommand.Settings>
 
     /// <summary>Initializes the command with the console used for output.</summary>
     /// <param name="console">The console used to render command output.</param>
-    public ToolsCleanCommand(IAnsiConsole console, ToolBundleManager bundleManager, WindowsRidDetector ridDetector) : base(console)
+    public ToolsCleanCommand(
+        IAnsiConsole console,
+        ToolBundleManager bundleManager,
+        WindowsRidDetector ridDetector,
+        AppConfigService configService) : base(console, configService)
     {
         _bundleManager = bundleManager;
         _ridDetector = ridDetector;

@@ -31,11 +31,14 @@ public sealed class ToolArchiveDefinition
     [JsonPropertyName("version")]
     public string? Version { get; init; }
 
+    [JsonPropertyName("expectedSha256")]
+    public string ExpectedSha256 { get; init; } = string.Empty;
+
     [JsonPropertyName("archiveUrl")]
     public string ArchiveUrl { get; init; } = string.Empty;
 
     [JsonPropertyName("sha256Url")]
-    public string Sha256Url { get; init; } = string.Empty;
+    public string? Sha256Url { get; init; }
 
     [JsonPropertyName("sha256Entry")]
     public string? Sha256Entry { get; init; }

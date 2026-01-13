@@ -38,9 +38,9 @@ public sealed class SpectreProgressReporter : IProgress<ToolProvisionProgress>
         return console.Profile.Out.IsTerminal && console.Profile.Capabilities.Ansi;
     }
 
-    public static T RunWithProgress<T>(IAnsiConsole console, Func<IProgress<ToolProvisionProgress>, T> action)
+    public static T RunWithProgress<T>(IAnsiConsole console, UiProgressMode mode, Func<IProgress<ToolProvisionProgress>, T> action)
     {
-        if (!CanRender(console))
+        if (!ShouldRender(console, mode))
         {
             return action(new NullProgressReporter());
         }
@@ -57,9 +57,12 @@ public sealed class SpectreProgressReporter : IProgress<ToolProvisionProgress>
         return result;
     }
 
-    public static async Task<T> RunWithProgressAsync<T>(IAnsiConsole console, Func<IProgress<ToolProvisionProgress>, Task<T>> action)
+    public static async Task<T> RunWithProgressAsync<T>(
+        IAnsiConsole console,
+        UiProgressMode mode,
+        Func<IProgress<ToolProvisionProgress>, Task<T>> action)
     {
-        if (!CanRender(console))
+        if (!ShouldRender(console, mode))
         {
             return await action(new NullProgressReporter()).ConfigureAwait(false);
         }
@@ -133,6 +136,16 @@ public sealed class SpectreProgressReporter : IProgress<ToolProvisionProgress>
             new PercentageColumn(),
             new RemainingTimeColumn(),
             new SpinnerColumn()
+        };
+    }
+
+    private static bool ShouldRender(IAnsiConsole console, UiProgressMode mode)
+    {
+        return mode switch
+        {
+            UiProgressMode.Off => false,
+            UiProgressMode.On => true,
+            _ => CanRender(console)
         };
     }
 

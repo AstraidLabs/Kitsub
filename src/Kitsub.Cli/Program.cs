@@ -1,4 +1,5 @@
 // Summary: Boots the CLI application, configures services, and registers command routes.
+using Kitsub.Core;
 using Kitsub.Tooling.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -16,14 +17,40 @@ public static class Program
     /// <returns>The process exit code produced by the command execution.</returns>
     public static async Task<int> Main(string[] args)
     {
-        if (!HasNoBannerFlag(args))
+        var configService = new AppConfigService();
+        AppConfig? effectiveConfig = null;
+        try
         {
-            PrintBanner();
+            effectiveConfig = configService.LoadEffectiveConfig();
+        }
+        catch (ConfigurationException ex)
+        {
+            AnsiConsole.MarkupLine($"[red]{Markup.Escape(ex.Message)}[/]");
+            return ExitCodes.ValidationError;
+        }
+
+        var bootstrap = ParseBootstrapOptions(args);
+        var uiConfig = effectiveConfig.Ui;
+        var noBanner = bootstrap.NoBanner || (uiConfig.NoBanner ?? false);
+        var noColor = bootstrap.NoColor || (uiConfig.NoColor ?? false);
+        var consoleSettings = new AnsiConsoleSettings();
+        if (noColor)
+        {
+            consoleSettings.Ansi = AnsiSupport.No;
+            consoleSettings.ColorSystem = ColorSystemSupport.NoColors;
+        }
+
+        var console = AnsiConsole.Create(consoleSettings);
+
+        if (!noBanner)
+        {
+            PrintBanner(console);
         }
 
         // Block: Configure dependency injection services used by CLI commands.
         var services = new ServiceCollection();
-        services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
+        services.AddSingleton<IAnsiConsole>(console);
+        services.AddSingleton(configService);
         var bootstrapLogger = new LoggerConfiguration()
             .MinimumLevel.Information()
             .WriteTo.Console()
@@ -78,18 +105,45 @@ public static class Program
                 tools.AddCommand<ToolsFetchCommand>("fetch").WithDescription("Download and cache tool binaries.");
                 tools.AddCommand<ToolsCleanCommand>("clean").WithDescription("Delete extracted tool cache.");
             });
+
+            config.AddBranch("config", configBranch =>
+            {
+                // Block: Configure commands that manage Kitsub configuration files.
+                configBranch.SetDescription("Configuration management.");
+                configBranch.AddCommand<ConfigPathCommand>("path").WithDescription("Show resolved configuration paths.");
+                configBranch.AddCommand<ConfigInitCommand>("init").WithDescription("Initialize the default configuration file.");
+                configBranch.AddCommand<ConfigShowCommand>("show").WithDescription("Display configuration files.");
+            });
+
+            config.AddCommand<DoctorCommand>("doctor").WithDescription("Run diagnostics and tool checks.");
         });
 
         // Block: Run the command app and return its exit code.
         return await app.RunAsync(args).ConfigureAwait(false);
     }
 
-    private static bool HasNoBannerFlag(string[] args)
+    private static BootstrapOptions ParseBootstrapOptions(string[] args)
     {
-        return args.Any(arg => arg.Equals("--no-banner", StringComparison.OrdinalIgnoreCase));
+        bool noBanner = false;
+        bool noColor = false;
+
+        for (var index = 0; index < args.Length; index++)
+        {
+            var arg = args[index];
+            if (arg.Equals("--no-banner", StringComparison.OrdinalIgnoreCase))
+            {
+                noBanner = true;
+            }
+            else if (arg.Equals("--no-color", StringComparison.OrdinalIgnoreCase))
+            {
+                noColor = true;
+            }
+        }
+
+        return new BootstrapOptions(noBanner, noColor);
     }
 
-    private static void PrintBanner()
+    private static void PrintBanner(IAnsiConsole console)
     {
         const string banner = """
  .'.            ,;     
@@ -104,7 +158,9 @@ public static class Program
        :0Xd,.          
         ,:.            
 """;
-        AnsiConsole.WriteLine(banner);
-        AnsiConsole.WriteLine();
+        console.WriteLine(banner);
+        console.WriteLine();
     }
+
+    private sealed record BootstrapOptions(bool NoBanner, bool NoColor);
 }
