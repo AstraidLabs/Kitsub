@@ -26,7 +26,7 @@ public sealed class DoctorCommand : CommandBase<DoctorCommand.Settings>
         var configStatus = ConfigService.GetGlobalStatus();
 
         Console.MarkupLine("[bold]Kitsub Doctor[/]");
-        Console.MarkupLine();
+        Console.MarkupLine(string.Empty);
         RenderConfigStatus(configStatus);
 
         using var tooling = ToolingFactory.CreateTooling(settings, Console, _toolResolver);
@@ -75,14 +75,14 @@ public sealed class DoctorCommand : CommandBase<DoctorCommand.Settings>
             nextSteps.Add("Run `kitsub tools fetch` to provision bundled tools into the cache.");
         }
 
-        Console.MarkupLine();
+        Console.MarkupLine(string.Empty);
         Console.MarkupLine("[bold]Checklist Summary[/]");
         Console.MarkupLine($"[bold]Config[/]: {(configStatus.Found ? (configStatus.Valid ? "Valid" : "Invalid") : "Missing")}");
         Console.MarkupLine($"[bold]Required tools[/]: {(requiredMissing ? "Missing" : "OK")}");
 
         if (nextSteps.Count > 0)
         {
-            Console.MarkupLine();
+            Console.MarkupLine(string.Empty);
             Console.MarkupLine("[bold]Next steps[/]");
             foreach (var step in nextSteps.Distinct())
             {
@@ -117,7 +117,7 @@ public sealed class DoctorCommand : CommandBase<DoctorCommand.Settings>
 
     private void RenderToolStatus(ToolResolution paths)
     {
-        Console.MarkupLine();
+        Console.MarkupLine(string.Empty);
         Console.MarkupLine($"[bold]RID[/]: {Markup.Escape(paths.RuntimeRid)}");
         Console.MarkupLine($"[bold]Toolset version[/]: {Markup.Escape(paths.ToolsetVersion)}");
 
@@ -133,7 +133,7 @@ public sealed class DoctorCommand : CommandBase<DoctorCommand.Settings>
         AddRow(table, "mkvpropedit", paths.Mkvpropedit);
 
         Console.Write(table);
-        Console.MarkupLine();
+        Console.MarkupLine(string.Empty);
     }
 
     private static void AddRow(Table table, string toolName, ToolPathResolution resolution)
