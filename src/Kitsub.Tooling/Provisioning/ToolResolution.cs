@@ -20,5 +20,6 @@ public sealed record ToolResolution(
     ToolPathResolution Ffmpeg,
     ToolPathResolution Ffprobe,
     ToolPathResolution Mkvmerge,
-    ToolPathResolution Mkvpropedit
+    ToolPathResolution Mkvpropedit,
+    ToolPathResolution Mediainfo
 );

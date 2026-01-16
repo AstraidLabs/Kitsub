@@ -93,13 +93,20 @@ public sealed class ToolManifestLoader
                 throw new ConfigurationException($"Tools manifest missing mkvtoolnix entry for RID {rid}.");
             }
 
+            if (entry.Mediainfo is null)
+            {
+                throw new ConfigurationException($"Tools manifest missing mediainfo entry for RID {rid}.");
+            }
+
             ValidateTool(entry.Ffmpeg, rid, "ffmpeg");
             ValidateTool(entry.Mkvtoolnix, rid, "mkvtoolnix");
+            ValidateTool(entry.Mediainfo, rid, "mediainfo");
 
             EnsureExtractKey(entry.Ffmpeg.ExtractMap, "ffmpeg.exe", rid, "ffmpeg");
             EnsureExtractKey(entry.Ffmpeg.ExtractMap, "ffprobe.exe", rid, "ffmpeg");
             EnsureExtractKey(entry.Mkvtoolnix.ExtractMap, "mkvmerge.exe", rid, "mkvtoolnix");
             EnsureExtractKey(entry.Mkvtoolnix.ExtractMap, "mkvpropedit.exe", rid, "mkvtoolnix");
+            EnsureExtractKey(entry.Mediainfo.ExtractMap, "mediainfo.exe", rid, "mediainfo");
         }
     }
 

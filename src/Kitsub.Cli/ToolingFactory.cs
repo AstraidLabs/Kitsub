@@ -23,7 +23,8 @@ public static class ToolingFactory
             settings.FfmpegPath,
             settings.FfprobePath,
             settings.MkvmergePath,
-            settings.MkvpropeditPath);
+            settings.MkvpropeditPath,
+            settings.MediainfoPath);
     }
 
     /// <summary>Validates logging settings and throws when configuration is invalid.</summary>
@@ -76,7 +77,7 @@ public static class ToolingFactory
         return new ToolingContext(provider, resolved, options);
     }
 
-    private static ExternalToolRunOptions BuildRunOptions(ToolSettings settings, IAnsiConsole console)
+    internal static ExternalToolRunOptions BuildRunOptions(ToolSettings settings, IAnsiConsole console)
     {
         // Block: Initialize optional callbacks used to echo tool commands and output.
         Action<string>? commandEcho = null;
@@ -158,6 +159,11 @@ public static class ToolingFactory
 
     public static ToolResolveOptions BuildResolveOptions(ToolSettings settings)
     {
+        return BuildResolveOptions(settings, allowProvisioning: true);
+    }
+
+    public static ToolResolveOptions BuildResolveOptions(ToolSettings settings, bool allowProvisioning)
+    {
         // Block: Map CLI settings into tool resolver options.
         return new ToolResolveOptions
         {
@@ -165,7 +171,8 @@ public static class ToolingFactory
             PreferPath = settings.PreferPath ?? false,
             ToolsCacheDir = settings.ToolsCacheDir,
             DryRun = settings.DryRun,
-            Verbose = settings.Verbose
+            Verbose = settings.Verbose,
+            AllowProvisioning = allowProvisioning
         };
     }
 }

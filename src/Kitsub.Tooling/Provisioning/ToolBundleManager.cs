@@ -1,5 +1,6 @@
 // Summary: Manages downloading and extracting Windows tool archives.
 using System.Diagnostics;
+using System.IO.Compression;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -68,6 +69,28 @@ public sealed class ToolBundleManager
         return new ToolBundleResult(baseDirectory, ToolSource.Bundled, paths);
     }
 
+    /// <summary>Attempts to resolve tools from the cache without provisioning.</summary>
+    public ToolBundleResult? TryGetCachedToolset(string rid, string? toolsCacheDir)
+    {
+        if (!Manifest.Rids.TryGetValue(rid, out var ridEntry))
+        {
+            _logger.LogWarning("Tools manifest missing RID {Rid}", rid);
+            return null;
+        }
+
+        var toolsetRoot = _cachePaths.GetToolsetRoot(rid, Manifest.ToolsetVersion, toolsCacheDir);
+        var paths = BuildToolPaths(toolsetRoot, ridEntry);
+
+        if (!AreAllToolsPresent(paths) || !AreToolHashesValid(paths, toolsetRoot))
+        {
+            _logger.LogDebug("Cached tools not present for RID {Rid}", rid);
+            return null;
+        }
+
+        _logger.LogInformation("Using cached tools from {Directory}", toolsetRoot);
+        return new ToolBundleResult(toolsetRoot, ToolSource.Cache, paths);
+    }
+
     /// <summary>Ensures the cache toolset is present, downloading and extracting as needed.</summary>
     public async Task<ToolBundleResult?> EnsureCachedToolsetAsync(
         string rid,
@@ -111,6 +134,8 @@ public sealed class ToolBundleManager
             .ConfigureAwait(false);
         await ProvisionToolAsync("mkvtoolnix", ridEntry.Mkvtoolnix!, Path.Combine(toolsetRoot, "mkvtoolnix"), cancellationToken, progress)
             .ConfigureAwait(false);
+        await ProvisionToolAsync("mediainfo", ridEntry.Mediainfo!, Path.Combine(toolsetRoot, "mediainfo"), cancellationToken, progress)
+            .ConfigureAwait(false);
 
         WriteToolHashes(paths, toolsetRoot);
         return new ToolBundleResult(toolsetRoot, ToolSource.Cache, paths);
@@ -147,8 +172,9 @@ public sealed class ToolBundleManager
         var ffprobePath = ResolveToolPath(ridEntry.Ffmpeg!, "ffprobe.exe", baseDirectory, "ffmpeg");
         var mkvmergePath = ResolveToolPath(ridEntry.Mkvtoolnix!, "mkvmerge.exe", baseDirectory, "mkvtoolnix");
         var mkvpropeditPath = ResolveToolPath(ridEntry.Mkvtoolnix!, "mkvpropedit.exe", baseDirectory, "mkvtoolnix");
+        var mediainfoPath = ResolveToolPath(ridEntry.Mediainfo!, "mediainfo.exe", baseDirectory, "mediainfo");
 
-        return new ToolPaths(ffmpegPath, ffprobePath, mkvmergePath, mkvpropeditPath);
+        return new ToolPaths(ffmpegPath, ffprobePath, mkvmergePath, mkvpropeditPath, mediainfoPath);
     }
 
     private static string ResolveToolPath(ToolArchiveDefinition definition, string key, string baseDirectory, string toolRoot)
@@ -163,7 +189,8 @@ public sealed class ToolBundleManager
         return File.Exists(paths.Ffmpeg) &&
                File.Exists(paths.Ffprobe) &&
                File.Exists(paths.Mkvmerge) &&
-               File.Exists(paths.Mkvpropedit);
+               File.Exists(paths.Mkvpropedit) &&
+               File.Exists(paths.Mediainfo);
     }
 
     private bool AreToolHashesValid(ToolPaths paths, string toolsetRoot)
@@ -185,7 +212,8 @@ public sealed class ToolBundleManager
         return VerifyHash(paths.Ffmpeg, manifest, toolsetRoot) &&
                VerifyHash(paths.Ffprobe, manifest, toolsetRoot) &&
                VerifyHash(paths.Mkvmerge, manifest, toolsetRoot) &&
-               VerifyHash(paths.Mkvpropedit, manifest, toolsetRoot);
+               VerifyHash(paths.Mkvpropedit, manifest, toolsetRoot) &&
+               VerifyHash(paths.Mediainfo, manifest, toolsetRoot);
     }
 
     private bool VerifyHash(string path, ToolHashManifest manifest, string toolsetRoot)
@@ -211,7 +239,8 @@ public sealed class ToolBundleManager
                 [Path.GetRelativePath(toolsetRoot, paths.Ffmpeg)] = ComputeSha256(paths.Ffmpeg),
                 [Path.GetRelativePath(toolsetRoot, paths.Ffprobe)] = ComputeSha256(paths.Ffprobe),
                 [Path.GetRelativePath(toolsetRoot, paths.Mkvmerge)] = ComputeSha256(paths.Mkvmerge),
-                [Path.GetRelativePath(toolsetRoot, paths.Mkvpropedit)] = ComputeSha256(paths.Mkvpropedit)
+                [Path.GetRelativePath(toolsetRoot, paths.Mkvpropedit)] = ComputeSha256(paths.Mkvpropedit),
+                [Path.GetRelativePath(toolsetRoot, paths.Mediainfo)] = ComputeSha256(paths.Mediainfo)
             }
         };
 
@@ -234,7 +263,9 @@ public sealed class ToolBundleManager
         CancellationToken cancellationToken,
         IProgress<ToolProvisionProgress>? progress)
     {
-        if (!string.Equals(definition.ArchiveType, "7z", StringComparison.OrdinalIgnoreCase))
+        var isSevenZip = string.Equals(definition.ArchiveType, "7z", StringComparison.OrdinalIgnoreCase);
+        var isZip = string.Equals(definition.ArchiveType, "zip", StringComparison.OrdinalIgnoreCase);
+        if (!isSevenZip && !isZip)
         {
             throw new ConfigurationException($"Unsupported archive type for {toolName}: {definition.ArchiveType}.");
         }
@@ -266,8 +297,17 @@ public sealed class ToolBundleManager
             }
 
             _logger.LogInformation("Starting extraction for {Tool}", toolName);
-            using var archive = new ArchiveFile(archivePath);
-            ExtractEntries(archive, definition.ExtractMap, toolName, toolRoot, progress);
+            if (isSevenZip)
+            {
+                using var archive = new ArchiveFile(archivePath);
+                ExtractEntries(archive, definition.ExtractMap, toolName, toolRoot, progress);
+            }
+            else
+            {
+                using var archive = ZipFile.OpenRead(archivePath);
+                ExtractEntries(archive, definition.ExtractMap, toolName, toolRoot, progress);
+            }
+
             _logger.LogInformation("Completed extraction for {Tool}", toolName);
         }
         finally
@@ -322,6 +362,59 @@ public sealed class ToolBundleManager
                 FilesTotal = totalFiles,
                 FilesDone = filesDone,
                 CurrentItem = entry.FileName
+            });
+        }
+    }
+
+    private void ExtractEntries(
+        ZipArchive archive,
+        Dictionary<string, string> extractMap,
+        string toolName,
+        string toolRoot,
+        IProgress<ToolProvisionProgress>? progress)
+    {
+        var totalFiles = extractMap.Count;
+        var filesDone = 0;
+
+        foreach (var (toolKey, archivePath) in extractMap)
+        {
+            var normalized = NormalizeArchivePath(archivePath);
+            var entry = archive.Entries.FirstOrDefault(e =>
+                !string.IsNullOrEmpty(e.Name) &&
+                NormalizeArchivePath(e.FullName).EndsWith(normalized, StringComparison.OrdinalIgnoreCase));
+
+            if (entry is null)
+            {
+                throw new IntegrityException($"Missing {toolKey} entry '{archivePath}' in archive.");
+            }
+
+            var destination = GetSafeDestinationPath(toolRoot, archivePath, toolName, toolKey);
+            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+
+            progress?.Report(new ToolProvisionProgress
+            {
+                ToolName = toolName,
+                ProvisionStage = ToolProvisionProgress.Stage.Extract,
+                FilesTotal = totalFiles,
+                FilesDone = filesDone,
+                CurrentItem = entry.FullName
+            });
+
+            using (var entryStream = entry.Open())
+            using (var destinationStream = File.Create(destination))
+            {
+                entryStream.CopyTo(destinationStream);
+            }
+
+            filesDone++;
+
+            progress?.Report(new ToolProvisionProgress
+            {
+                ToolName = toolName,
+                ProvisionStage = ToolProvisionProgress.Stage.Extract,
+                FilesTotal = totalFiles,
+                FilesDone = filesDone,
+                CurrentItem = entry.FullName
             });
         }
     }

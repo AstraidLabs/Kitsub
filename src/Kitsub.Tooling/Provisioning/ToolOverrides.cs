@@ -6,5 +6,6 @@ public sealed record ToolOverrides(
     string? Ffmpeg,
     string? Ffprobe,
     string? Mkvmerge,
-    string? Mkvpropedit
+    string? Mkvpropedit,
+    string? Mediainfo
 );

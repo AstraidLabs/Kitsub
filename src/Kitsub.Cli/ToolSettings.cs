@@ -22,6 +22,10 @@ public abstract class ToolSettings : CommandSettings
     /// <summary>Gets the path or command name used to invoke mkvpropedit.</summary>
     public string? MkvpropeditPath { get; set; }
 
+    [CommandOption("--mediainfo <PATH>")]
+    /// <summary>Gets the path or command name used to invoke mediainfo.</summary>
+    public string? MediainfoPath { get; set; }
+
     [CommandOption("--prefer-bundled <BOOL>")]
     /// <summary>Gets a value indicating whether bundled tools are preferred.</summary>
     public bool? PreferBundled { get; set; }

@@ -45,6 +45,9 @@ public sealed class ToolsConfig
 
     [JsonPropertyName("mkvpropedit")]
     public string? Mkvpropedit { get; init; }
+
+    [JsonPropertyName("mediainfo")]
+    public string? Mediainfo { get; init; }
 }
 
 /// <summary>Represents configuration for logging output.</summary>

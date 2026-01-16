@@ -23,6 +23,9 @@ public sealed class ToolsManifestRid
 
     [JsonPropertyName("mkvtoolnix")]
     public ToolArchiveDefinition? Mkvtoolnix { get; init; }
+
+    [JsonPropertyName("mediainfo")]
+    public ToolArchiveDefinition? Mediainfo { get; init; }
 }
 
 /// <summary>Describes a downloadable tool archive and its extraction map.</summary>

@@ -131,6 +131,7 @@ public sealed class DoctorCommand : CommandBase<DoctorCommand.Settings>
         AddRow(table, "ffprobe", paths.Ffprobe);
         AddRow(table, "mkvmerge", paths.Mkvmerge);
         AddRow(table, "mkvpropedit", paths.Mkvpropedit);
+        AddRow(table, "mediainfo", paths.Mediainfo);
 
         Console.Write(table);
         Console.MarkupLine(string.Empty);
