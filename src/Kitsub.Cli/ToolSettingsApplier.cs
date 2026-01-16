@@ -10,6 +10,7 @@ public static class ToolSettingsApplier
         settings.FfprobePath ??= config.Tools.Ffprobe;
         settings.MkvmergePath ??= config.Tools.Mkvmerge;
         settings.MkvpropeditPath ??= config.Tools.Mkvpropedit;
+        settings.MediainfoPath ??= config.Tools.Mediainfo;
         settings.PreferBundled ??= config.Tools.PreferBundled;
         settings.PreferPath ??= config.Tools.PreferPath;
         settings.ToolsCacheDir ??= config.Tools.ToolsCacheDir;

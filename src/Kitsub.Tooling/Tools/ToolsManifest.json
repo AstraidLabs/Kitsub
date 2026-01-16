@@ -1,5 +1,5 @@
 {
-  "toolsetVersion": "2026.01",
+  "toolsetVersion": "2026.02",
   "rids": {
     "win-x64": {
       "ffmpeg": {
@@ -22,6 +22,15 @@
         "extractMap": {
           "mkvmerge.exe": "mkvmerge.exe",
           "mkvpropedit.exe": "mkvpropedit.exe"
+        }
+      },
+      "mediainfo": {
+        "version": "25.10",
+        "expectedSha256": "e47978091e5716052409d776cafbd42819a17dc9ab4586f413faf60c82d39c92",
+        "archiveUrl": "https://mediaarea.net/download/binary/mediainfo/25.10/MediaInfo_CLI_25.10_Windows_x64.zip",
+        "archiveType": "zip",
+        "extractMap": {
+          "mediainfo.exe": "mediainfo.exe"
         }
       }
     }

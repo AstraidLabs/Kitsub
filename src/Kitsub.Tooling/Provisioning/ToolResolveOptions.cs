@@ -4,6 +4,9 @@ namespace Kitsub.Tooling.Provisioning;
 /// <summary>Defines options used when resolving tool paths.</summary>
 public sealed class ToolResolveOptions
 {
+    /// <summary>Gets or sets a value indicating whether provisioning is allowed.</summary>
+    public bool AllowProvisioning { get; init; } = true;
+
     /// <summary>Gets or sets a value indicating whether bundled tools are preferred.</summary>
     public bool PreferBundled { get; init; } = true;
 

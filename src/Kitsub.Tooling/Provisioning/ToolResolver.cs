@@ -40,8 +40,10 @@ public sealed class ToolResolver
 
             if (bundled is null && !options.PreferPath)
             {
-                cached = _bundleManager.EnsureCachedToolsetAsync(rid, options, CancellationToken.None, force: false, progress)
-                    .GetAwaiter().GetResult();
+                cached = options.AllowProvisioning
+                    ? _bundleManager.EnsureCachedToolsetAsync(rid, options, CancellationToken.None, force: false, progress)
+                        .GetAwaiter().GetResult()
+                    : _bundleManager.TryGetCachedToolset(rid, options.ToolsCacheDir);
             }
         }
         else
@@ -53,13 +55,15 @@ public sealed class ToolResolver
         var ffprobe = ResolveTool("ffprobe", overrides.Ffprobe, bundled, cached, options);
         var mkvmerge = ResolveTool("mkvmerge", overrides.Mkvmerge, bundled, cached, options);
         var mkvpropedit = ResolveTool("mkvpropedit", overrides.Mkvpropedit, bundled, cached, options);
+        var mediainfo = ResolveTool("mediainfo", overrides.Mediainfo, bundled, cached, options);
 
         LogResolved("ffmpeg", ffmpeg);
         LogResolved("ffprobe", ffprobe);
         LogResolved("mkvmerge", mkvmerge);
         LogResolved("mkvpropedit", mkvpropedit);
+        LogResolved("mediainfo", mediainfo);
 
-        return new ToolResolution(rid, toolsetVersion, ffmpeg, ffprobe, mkvmerge, mkvpropedit);
+        return new ToolResolution(rid, toolsetVersion, ffmpeg, ffprobe, mkvmerge, mkvpropedit, mediainfo);
     }
 
     private ToolPathResolution ResolveTool(
@@ -102,6 +106,7 @@ public sealed class ToolResolver
             "ffprobe" => paths.Ffprobe,
             "mkvmerge" => paths.Mkvmerge,
             "mkvpropedit" => paths.Mkvpropedit,
+            "mediainfo" => paths.Mediainfo,
             _ => throw new InvalidOperationException($"Unknown tool: {toolName}")
         };
     }

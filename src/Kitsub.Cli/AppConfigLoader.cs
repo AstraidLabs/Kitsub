@@ -142,6 +142,7 @@ public sealed class AppConfigLoader
                 Ffprobe = Environment.GetEnvironmentVariable("KITSUB_FFPROBE"),
                 Mkvmerge = Environment.GetEnvironmentVariable("KITSUB_MKVMERGE"),
                 Mkvpropedit = Environment.GetEnvironmentVariable("KITSUB_MKVPROPEDIT"),
+                Mediainfo = Environment.GetEnvironmentVariable("KITSUB_MEDIAINFO"),
                 ToolsCacheDir = Environment.GetEnvironmentVariable("KITSUB_TOOLS_CACHE_DIR")
             }
         });
@@ -157,7 +158,8 @@ public sealed class AppConfigLoader
                 Ffmpeg = NormalizePathOrNull(config.Tools.Ffmpeg),
                 Ffprobe = NormalizePathOrNull(config.Tools.Ffprobe),
                 Mkvmerge = NormalizePathOrNull(config.Tools.Mkvmerge),
-                Mkvpropedit = NormalizePathOrNull(config.Tools.Mkvpropedit)
+                Mkvpropedit = NormalizePathOrNull(config.Tools.Mkvpropedit),
+                Mediainfo = NormalizePathOrNull(config.Tools.Mediainfo)
             },
             Logging = new LoggingConfig
             {
@@ -206,6 +208,7 @@ public sealed class AppConfigLoader
         ValidateToolPath(config.Tools.Ffprobe, "ffprobe");
         ValidateToolPath(config.Tools.Mkvmerge, "mkvmerge");
         ValidateToolPath(config.Tools.Mkvpropedit, "mkvpropedit");
+        ValidateToolPath(config.Tools.Mediainfo, "mediainfo");
 
         if (!string.IsNullOrWhiteSpace(config.Tools.ToolsCacheDir))
         {
@@ -259,7 +262,8 @@ public sealed class AppConfigLoader
                 Ffmpeg = overrideConfig.Tools.Ffmpeg ?? baseConfig.Tools.Ffmpeg,
                 Ffprobe = overrideConfig.Tools.Ffprobe ?? baseConfig.Tools.Ffprobe,
                 Mkvmerge = overrideConfig.Tools.Mkvmerge ?? baseConfig.Tools.Mkvmerge,
-                Mkvpropedit = overrideConfig.Tools.Mkvpropedit ?? baseConfig.Tools.Mkvpropedit
+                Mkvpropedit = overrideConfig.Tools.Mkvpropedit ?? baseConfig.Tools.Mkvpropedit,
+                Mediainfo = overrideConfig.Tools.Mediainfo ?? baseConfig.Tools.Mediainfo
             },
             Logging = new LoggingConfig
             {

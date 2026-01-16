@@ -121,7 +121,8 @@ public class MkvmergeClientTests
             new ToolPathResolution("ffmpeg", ToolSource.Path),
             new ToolPathResolution("ffprobe", ToolSource.Path),
             new ToolPathResolution("mkvmerge", ToolSource.Path),
-            new ToolPathResolution("mkvpropedit", ToolSource.Path));
+            new ToolPathResolution("mkvpropedit", ToolSource.Path),
+            new ToolPathResolution("mediainfo", ToolSource.Path));
 
         return new MkvmergeClient(runner, paths, new ExternalToolRunOptions(), Substitute.For<ILogger<MkvmergeClient>>());
     }

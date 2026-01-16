@@ -17,7 +17,8 @@ public static class AppConfigDefaults
                 Ffmpeg = null,
                 Ffprobe = null,
                 Mkvmerge = null,
-                Mkvpropedit = null
+                Mkvpropedit = null,
+                Mediainfo = null
             },
             Logging = new LoggingConfig
             {

@@ -23,7 +23,7 @@ public class ToolResolverTests
 
         try
         {
-            var overrides = new ToolOverrides(overridePath, null, null, null);
+            var overrides = new ToolOverrides(overridePath, null, null, null, null);
             var options = new ToolResolveOptions { PreferBundled = true };
 
             var result = resolver.Resolve(overrides, options);
@@ -49,7 +49,7 @@ public class ToolResolverTests
         {
             var options = new ToolResolveOptions { PreferBundled = true };
 
-            var result = resolver.Resolve(new ToolOverrides(null, null, null, null), options);
+            var result = resolver.Resolve(new ToolOverrides(null, null, null, null, null), options);
 
             result.Ffmpeg.Source.Should().Be(ToolSource.Bundled);
             result.Ffprobe.Source.Should().Be(ToolSource.Bundled);
@@ -74,7 +74,7 @@ public class ToolResolverTests
         {
             var options = new ToolResolveOptions { PreferBundled = false, PreferPath = false, ToolsCacheDir = cacheRoot };
 
-            var result = resolver.Resolve(new ToolOverrides(null, null, null, null), options);
+            var result = resolver.Resolve(new ToolOverrides(null, null, null, null, null), options);
 
             result.Ffmpeg.Source.Should().Be(ToolSource.Cache);
             result.Mkvmerge.Source.Should().Be(ToolSource.Cache);
@@ -92,7 +92,7 @@ public class ToolResolverTests
         var (resolver, _, _) = CreateResolver();
         var options = new ToolResolveOptions { PreferBundled = false, PreferPath = true };
 
-        var result = resolver.Resolve(new ToolOverrides(null, null, null, null), options);
+        var result = resolver.Resolve(new ToolOverrides(null, null, null, null, null), options);
 
         result.Ffmpeg.Source.Should().Be(ToolSource.Path);
         result.Ffmpeg.Path.Should().Be("ffmpeg");
@@ -138,6 +138,7 @@ public class ToolResolverTests
         CreateToolFile(ResolveToolPath(ridEntry.Ffmpeg!, "ffprobe.exe", baseDirectory, "ffmpeg"));
         CreateToolFile(ResolveToolPath(ridEntry.Mkvtoolnix!, "mkvmerge.exe", baseDirectory, "mkvtoolnix"));
         CreateToolFile(ResolveToolPath(ridEntry.Mkvtoolnix!, "mkvpropedit.exe", baseDirectory, "mkvtoolnix"));
+        CreateToolFile(ResolveToolPath(ridEntry.Mediainfo!, "mediainfo.exe", baseDirectory, "mediainfo"));
     }
 
     private static string ResolveToolPath(ToolArchiveDefinition definition, string key, string baseDirectory, string toolRoot)

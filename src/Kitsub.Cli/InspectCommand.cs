@@ -2,6 +2,8 @@
 using Kitsub.Core;
 using Kitsub.Tooling;
 using Kitsub.Tooling.Provisioning;
+using Microsoft.Extensions.DependencyInjection;
+using Serilog.Extensions.Logging;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -11,48 +13,95 @@ namespace Kitsub.Cli;
 public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
 {
     private readonly ToolResolver _toolResolver;
+    private readonly ToolBundleManager _bundleManager;
+    private readonly ToolCachePaths _cachePaths;
+    private readonly WindowsRidDetector _ridDetector;
 
     /// <summary>Defines command-line settings for media inspection.</summary>
     public sealed class Settings : ToolSettings
     {
-        [CommandArgument(0, "<FILE>")]
-        /// <summary>Gets the path to the media file to inspect.</summary>
-        public string FilePath { get; init; } = string.Empty;
+        [CommandArgument(0, "<TARGET>")]
+        /// <summary>Gets the inspection target or mode.</summary>
+        public string Target { get; init; } = string.Empty;
+
+        [CommandArgument(1, "[FILE]")]
+        /// <summary>Gets the path to the media file when using a specialized inspection mode.</summary>
+        public string? FilePath { get; init; }
+
+        [CommandOption("--no-provision")]
+        /// <summary>Gets a value indicating whether provisioning is disabled for MediaInfo inspections.</summary>
+        public bool NoProvision { get; init; }
 
         /// <summary>Validates the provided settings for media inspection.</summary>
         /// <returns>A validation result indicating success or failure.</returns>
         public override ValidationResult Validate()
         {
-            // Block: Validate the required input file before inspection.
-            return ValidationHelpers.ValidateFileExists(FilePath, "Input file");
+            // Block: Validate the inspection target and any required file paths.
+            if (string.IsNullOrWhiteSpace(Target))
+            {
+                return ValidationResult.Error("Inspection target is required.");
+            }
+
+            if (Target.Equals("mediainfo", StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrWhiteSpace(FilePath))
+                {
+                    return ValidationResult.Error("MediaInfo inspection requires a file path.");
+                }
+
+                return ValidationHelpers.ValidateFileExists(FilePath, "Input file");
+            }
+
+            if (!string.IsNullOrWhiteSpace(FilePath))
+            {
+                return ValidationResult.Error("Unexpected extra argument. Use `kitsub inspect mediainfo <file>` for MediaInfo mode.");
+            }
+
+            return ValidationHelpers.ValidateFileExists(Target, "Input file");
         }
     }
 
     /// <summary>Initializes the command with the console used for output.</summary>
     /// <param name="console">The console used to render command output.</param>
-    public InspectCommand(IAnsiConsole console, ToolResolver toolResolver, AppConfigService configService) : base(console, configService)
+    public InspectCommand(
+        IAnsiConsole console,
+        ToolResolver toolResolver,
+        ToolBundleManager bundleManager,
+        ToolCachePaths cachePaths,
+        WindowsRidDetector ridDetector,
+        AppConfigService configService) : base(console, configService)
     {
         // Block: Delegate console handling to the base command class.
         _toolResolver = toolResolver;
+        _bundleManager = bundleManager;
+        _cachePaths = cachePaths;
+        _ridDetector = ridDetector;
     }
 
     protected override async Task<int> ExecuteAsyncCore(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
+        if (settings.Target.Equals("mediainfo", StringComparison.OrdinalIgnoreCase))
+        {
+            return await ExecuteMediaInfoAsync(settings, cancellationToken).ConfigureAwait(false);
+        }
+
+        var filePath = settings.Target;
+
         // Block: Create tooling services scoped to this command execution.
         using var tooling = ToolingFactory.CreateTooling(settings, Console, _toolResolver);
         if (settings.DryRun)
         {
-            if (Path.GetExtension(settings.FilePath).Equals(".mkv", StringComparison.OrdinalIgnoreCase))
+            if (Path.GetExtension(filePath).Equals(".mkv", StringComparison.OrdinalIgnoreCase))
             {
                 // Block: Render the MKV identify command without executing it.
                 var mkvmerge = tooling.GetRequiredService<MkvmergeClient>();
-                Console.MarkupLine($"[grey]{Markup.Escape(mkvmerge.BuildIdentifyCommand(settings.FilePath).Rendered)}[/]");
+                Console.MarkupLine($"[grey]{Markup.Escape(mkvmerge.BuildIdentifyCommand(filePath).Rendered)}[/]");
             }
             else
             {
                 // Block: Render the ffprobe command without executing it.
                 var ffprobe = tooling.GetRequiredService<FfprobeClient>();
-                Console.MarkupLine($"[grey]{Markup.Escape(ffprobe.BuildProbeCommand(settings.FilePath).Rendered)}[/]");
+                Console.MarkupLine($"[grey]{Markup.Escape(ffprobe.BuildProbeCommand(filePath).Rendered)}[/]");
             }
 
             return 0;
@@ -60,7 +109,7 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
 
         // Block: Inspect the media file and gather metadata for rendering.
         var service = tooling.Service;
-        var result = await service.InspectAsync(settings.FilePath, cancellationToken).ConfigureAwait(false);
+        var result = await service.InspectAsync(filePath, cancellationToken).ConfigureAwait(false);
         var info = result.Info;
         var isMkv = result.IsMkv;
 
@@ -73,6 +122,158 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
         }
 
         return 0;
+    }
+
+    private async Task<int> ExecuteMediaInfoAsync(Settings settings, CancellationToken cancellationToken)
+    {
+        var filePath = settings.FilePath!;
+        var overrides = ToolingFactory.BuildToolOverrides(settings);
+        var progressMode = settings.Progress ?? UiProgressMode.Auto;
+        var resolveOptions = ToolingFactory.BuildResolveOptions(settings, allowProvisioning: false);
+
+        var resolved = SpectreProgressReporter.RunWithProgress(
+            Console,
+            progressMode,
+            progress => _toolResolver.Resolve(overrides, resolveOptions, progress));
+
+        var mediainfoPath = ResolveExecutable("mediainfo", resolved.Mediainfo);
+        if (mediainfoPath is null)
+        {
+            if (settings.DryRun)
+            {
+                RenderDryRunProvisioning(settings);
+                return ExitCodes.Success;
+            }
+
+            if (settings.NoProvision)
+            {
+                Console.MarkupLine("[red]MediaInfo not found. Use --mediainfo or configure tools.mediainfo, or run without --no-provision to auto-download.[/]");
+                return ExitCodes.ValidationError;
+            }
+
+            var provisionOptions = ToolingFactory.BuildResolveOptions(settings, allowProvisioning: true);
+            var result = await SpectreProgressReporter.RunWithProgressAsync(
+                Console,
+                progressMode,
+                progress => _bundleManager.EnsureCachedToolsetAsync(
+                    _ridDetector.GetRuntimeRid(),
+                    provisionOptions,
+                    cancellationToken,
+                    force: false,
+                    progress)).ConfigureAwait(false);
+
+            if (result is null)
+            {
+                Console.MarkupLine("[red]Failed to provision MediaInfo. Check logs for details.[/]");
+                return ExitCodes.ProvisioningFailure;
+            }
+
+            resolved = _toolResolver.Resolve(overrides, resolveOptions);
+            mediainfoPath = ResolveExecutable("mediainfo", resolved.Mediainfo);
+            if (mediainfoPath is null)
+            {
+                Console.MarkupLine("[red]MediaInfo provisioning completed but executable was not found.[/]");
+                return ExitCodes.ProvisioningFailure;
+            }
+        }
+
+        var reportPath = BuildMediaInfoReportPath();
+        var args = new[] { "--Output=JSON", filePath };
+        var runOptions = ToolingFactory.BuildRunOptions(settings, Console);
+        var logger = ToolingFactory.CreateLogger(settings);
+
+        if (settings.DryRun)
+        {
+            Console.MarkupLine($"[grey]{Markup.Escape(ExternalToolRunner.RenderCommandLine(mediainfoPath, args))}[/]");
+            Console.MarkupLine($"[grey]Report: {Markup.Escape(reportPath)}[/]");
+            return ExitCodes.Success;
+        }
+
+        var services = new ServiceCollection();
+        services.AddSingleton(runOptions);
+        services.AddSingleton<IExternalToolRunner, ExternalToolRunner>();
+        services.AddLogging(builder => builder.AddSerilog(logger, dispose: true));
+        using var provider = services.BuildServiceProvider();
+
+        var runner = provider.GetRequiredService<IExternalToolRunner>();
+        var result = await runner.CaptureAsync(mediainfoPath, args, runOptions, cancellationToken).ConfigureAwait(false);
+        if (result.ExitCode != 0)
+        {
+            throw new ExternalToolException("mediainfo failed.", result);
+        }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(reportPath)!);
+        await File.WriteAllTextAsync(reportPath, result.StandardOutput, cancellationToken).ConfigureAwait(false);
+
+        Console.MarkupLine($"[green]MediaInfo report saved:[/] {Markup.Escape(reportPath)}");
+        return ExitCodes.Success;
+    }
+
+    private string BuildMediaInfoReportPath()
+    {
+        var timestamp = DateTimeOffset.Now;
+        var reportRoot = Path.Combine(Environment.CurrentDirectory, "reports", "mediainfo", timestamp.ToString("yyyyMMdd"));
+        var fileName = $"mediainfo_{timestamp:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}.json";
+        return Path.Combine(reportRoot, fileName);
+    }
+
+    private void RenderDryRunProvisioning(Settings settings)
+    {
+        var rid = _ridDetector.GetRuntimeRid();
+        var manifest = _bundleManager.Manifest;
+        if (!manifest.Rids.TryGetValue(rid, out var ridEntry) || ridEntry.Mediainfo is null)
+        {
+            Console.MarkupLine("[yellow]MediaInfo provisioning is not available for this platform.[/]");
+            return;
+        }
+
+        var toolsetRoot = _cachePaths.GetToolsetRoot(rid, manifest.ToolsetVersion, settings.ToolsCacheDir);
+        var expectedPath = Path.Combine(toolsetRoot, "mediainfo");
+
+        Console.MarkupLine("[yellow]MediaInfo not found.[/]");
+        Console.MarkupLine("[grey]Dry-run: provisioning is disabled.[/]");
+        Console.MarkupLine($"[grey]Would download:[/] {Markup.Escape(ridEntry.Mediainfo.ArchiveUrl)}");
+        Console.MarkupLine($"[grey]Would extract to:[/] {Markup.Escape(expectedPath)}");
+    }
+
+    private static string? ResolveExecutable(string toolName, ToolPathResolution resolution)
+    {
+        if (resolution.Source != ToolSource.Path)
+        {
+            return File.Exists(resolution.Path) ? resolution.Path : null;
+        }
+
+        return FindOnPath(toolName);
+    }
+
+    private static string? FindOnPath(string toolName)
+    {
+        var pathValue = Environment.GetEnvironmentVariable("PATH");
+        if (string.IsNullOrWhiteSpace(pathValue))
+        {
+            return null;
+        }
+
+        var candidates = new[] { toolName, $"{toolName}.exe" };
+        foreach (var path in pathValue.Split(Path.PathSeparator))
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                continue;
+            }
+
+            var trimmed = path.Trim().Trim('"');
+            foreach (var candidate in candidates)
+            {
+                var fullPath = Path.Combine(trimmed, candidate);
+                if (File.Exists(fullPath))
+                {
+                    return fullPath;
+                }
+            }
+        }
+
+        return null;
     }
 
     private void RenderTracks(MediaInfo info)

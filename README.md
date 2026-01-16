@@ -7,6 +7,7 @@ commonly used in anime/fansub pipelines. It wraps FFmpeg/ffprobe and MKVToolNix
 ## Key Features
 
 - Inspect media streams and metadata.
+- Generate MediaInfo CLI reports.
 - Mux subtitle tracks into MKV files.
 - Check required fonts and attach them to MKV containers.
 - Extract audio, video, and subtitle streams.
@@ -52,6 +53,11 @@ Planned. (If this becomes available it will be documented here.)
 ```
 
 ```powershell
+# Generate a MediaInfo report
+ kitsub inspect mediainfo "[SubsPlease] Frieren - 01 (1080p).mkv"
+```
+
+```powershell
 # Mux subtitles into an MKV
  kitsub mux --in "[SubsPlease] Frieren - 01 (1080p).mkv" \
    --sub "[SubsPlease] Frieren - 01.en.ass" --lang eng --title "English" \
@@ -91,6 +97,7 @@ Planned. (If this becomes available it will be documented here.)
 ## Commands
 
 - `inspect` — Inspect media streams and metadata.
+- `inspect mediainfo` — Generate a MediaInfo CLI report.
 - `mux` — Add subtitle tracks to an MKV.
 - `burn` — Burn subtitles into video.
 - `convert sub` — Convert subtitles between formats.
@@ -110,7 +117,9 @@ Planned. (If this becomes available it will be documented here.)
 ## Tool Provisioning (No Manual Installs)
 
 Kitsub resolves tool binaries automatically. You can override any tool path when
-needed, but most users never need to install FFmpeg or MKVToolNix manually.
+needed, but most users never need to install FFmpeg, MKVToolNix, or MediaInfo
+manually. MediaInfo CLI is downloaded from mediaarea.net the first time you run
+`kitsub inspect mediainfo` or `kitsub tools fetch`.
 
 **Modes**
 
@@ -120,7 +129,7 @@ needed, but most users never need to install FFmpeg or MKVToolNix manually.
 
 **Resolution priority**
 
-1. CLI overrides (`--ffmpeg`, `--ffprobe`, `--mkvmerge`, `--mkvpropedit`)
+1. CLI overrides (`--ffmpeg`, `--ffprobe`, `--mkvmerge`, `--mkvpropedit`, `--mediainfo`)
 2. Config file overrides (global + per-tool)
 3. Environment variable overrides
 4. Bundled tools next to the app
@@ -137,8 +146,10 @@ needed, but most users never need to install FFmpeg or MKVToolNix manually.
 
 **Overrides**
 
-- `--ffmpeg`, `--ffprobe`, `--mkvmerge`, `--mkvpropedit`
+- `--ffmpeg`, `--ffprobe`, `--mkvmerge`, `--mkvpropedit`, `--mediainfo`
 - `--tools-cache-dir`
+- `--no-provision` (MediaInfo inspection only)
+- Config: `tools.mediainfo`
 
 **Integrity**
 
@@ -186,7 +197,7 @@ Kitsub logs to rolling files via Serilog. By default, logs are written under
 **Environment variables**
 
 - `KITSUB_CONFIG` — override the global config path.
-- `KITSUB_FFMPEG`, `KITSUB_FFPROBE`, `KITSUB_MKVMERGE`, `KITSUB_MKVPROPEDIT`
+- `KITSUB_FFMPEG`, `KITSUB_FFPROBE`, `KITSUB_MKVMERGE`, `KITSUB_MKVPROPEDIT`, `KITSUB_MEDIAINFO`
 - `KITSUB_TOOLS_CACHE_DIR`
 
 **Commands**
