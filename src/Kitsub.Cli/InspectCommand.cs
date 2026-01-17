@@ -3,6 +3,7 @@ using Kitsub.Core;
 using Kitsub.Tooling;
 using Kitsub.Tooling.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 using Serilog.Extensions.Logging;
 using Spectre.Console;
 using Spectre.Console.Cli;
