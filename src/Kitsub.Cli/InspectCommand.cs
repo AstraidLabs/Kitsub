@@ -153,7 +153,7 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
             }
 
             var provisionOptions = ToolingFactory.BuildResolveOptions(settings, allowProvisioning: true);
-            var result = await SpectreProgressReporter.RunWithProgressAsync(
+            var provisionResult = await SpectreProgressReporter.RunWithProgressAsync(
                 Console,
                 progressMode,
                 progress => _bundleManager.EnsureCachedToolsetAsync(
@@ -163,7 +163,7 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
                     force: false,
                     progress)).ConfigureAwait(false);
 
-            if (result is null)
+            if (provisionResult is null)
             {
                 Console.MarkupLine("[red]Failed to provision MediaInfo. Check logs for details.[/]");
                 return ExitCodes.ProvisioningFailure;
