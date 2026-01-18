@@ -94,6 +94,17 @@ Planned. (If this becomes available it will be documented here.)
  kitsub tools fetch
 ```
 
+```powershell
+# Release mux workflow (single subtitle)
+ kitsub release mux --in "Frieren - 01.mkv" --sub "Frieren - 01.en.ass" \
+   --lang eng --title "English" --fonts .\fonts --out "Frieren - 01.release.mkv"
+```
+
+```powershell
+# Release mux workflow (spec-driven)
+ kitsub release mux --spec .\release.json --out-dir .\release
+```
+
 ## Commands
 
 - `inspect` — Inspect media streams and metadata.
@@ -109,6 +120,7 @@ Planned. (If this becomes available it will be documented here.)
 - `tools status` — Show resolved tool paths and sources.
 - `tools fetch` — Download and cache tool binaries.
 - `tools clean` — Delete cached tools.
+- `release mux` — Release mux workflow for MKV files.
 - `config path` — Show resolved configuration paths.
 - `config init` — Initialize the global configuration file.
 - `config show` — Display the global or effective configuration.
@@ -118,20 +130,22 @@ Planned. (If this becomes available it will be documented here.)
 
 Kitsub resolves tool binaries automatically. You can override any tool path when
 needed, but most users never need to install FFmpeg, MKVToolNix, or MediaInfo
-manually. MediaInfo CLI is downloaded from mediaarea.net the first time you run
-`kitsub inspect mediainfo` or `kitsub tools fetch`.
+manually. When provisioning is allowed, Kitsub downloads the toolset (ffmpeg,
+ffprobe, mkvmerge, mkvpropedit, mediainfo) into the cache the first time a
+command needs it or when running `kitsub tools fetch`.
 
 **Modes**
 
 - **Bundled:** tools are shipped under `./tools/win-x64/...` alongside the app.
 - **Cache:** tools are downloaded and extracted to
-  `%LOCALAPPDATA%\Kitsub\tools\...`.
+  `%LOCALAPPDATA%\Kitsub\tools\<rid>\<toolsetVersion>\...` (override with
+  `--tools-cache-dir` or `KITSUB_TOOLS_CACHE_DIR`).
 
 **Resolution priority**
 
 1. CLI overrides (`--ffmpeg`, `--ffprobe`, `--mkvmerge`, `--mkvpropedit`, `--mediainfo`)
-2. Config file overrides (global + per-tool)
-3. Environment variable overrides
+2. Environment variable overrides
+3. Config file overrides (global + per-tool)
 4. Bundled tools next to the app
 5. Cached tools
 6. PATH fallback
@@ -147,8 +161,9 @@ manually. MediaInfo CLI is downloaded from mediaarea.net the first time you run
 **Overrides**
 
 - `--ffmpeg`, `--ffprobe`, `--mkvmerge`, `--mkvpropedit`, `--mediainfo`
+- `--prefer-bundled`, `--prefer-path`
 - `--tools-cache-dir`
-- `--no-provision` (MediaInfo inspection only)
+- `--no-provision` (MediaInfo inspection and release mux)
 - Config: `tools.mediainfo`
 
 **Integrity**
@@ -167,6 +182,7 @@ Kitsub logs to rolling files via Serilog. By default, logs are written under
 - `--log-level` — set the log level (`trace|debug|info|warn|error`).
 - `--verbose` — print commands and tool output to the console.
 - `--dry-run` — show commands without executing.
+- `--no-log` — disable file logging and log to the console instead.
 
 **Troubleshooting workflow**
 
