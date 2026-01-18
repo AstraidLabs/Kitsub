@@ -172,9 +172,16 @@ public sealed class MkvmergeMuxer
         }
 
         // Block: Recursively enumerate fonts with known extensions.
+        var rootDir = Path.GetFullPath(fontsDir);
         return Directory
-            .EnumerateFiles(fontsDir, "*", SearchOption.AllDirectories)
+            .EnumerateFiles(rootDir, "*", SearchOption.AllDirectories)
             .Where(file => FontExtensions.Contains(Path.GetExtension(file), StringComparer.OrdinalIgnoreCase))
+            .Select(file =>
+            {
+                var relativePath = Path.GetRelativePath(rootDir, file)
+                    .Replace(Path.DirectorySeparatorChar, '/');
+                return Path.Combine(rootDir, relativePath);
+            })
             .ToList();
     }
 }
