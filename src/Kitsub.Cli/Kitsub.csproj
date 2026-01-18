@@ -1,33 +1,52 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <RootNamespace>Kitsub.Cli</RootNamespace>
-    <ApplicationIcon>favicon.ico</ApplicationIcon>
-  </PropertyGroup>
-  <ItemGroup>
-    <Content Include="favicon.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="tools/**" Condition="Exists('tools')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="../Kitsub.Core/Kitsub.Core.csproj" />
-    <ProjectReference Include="../Kitsub.Tooling/Kitsub.Tooling.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Spectre.Console" Version="0.54.0" />
-    <PackageReference Include="Spectre.Console.Cli" Version="0.53.1" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.1" />
-    <PackageReference Include="Serilog" Version="4.3.0" />
-    <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
-    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
-    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
-  </ItemGroup>
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<RootNamespace>Kitsub.Cli</RootNamespace>
+		<ApplicationIcon>favicon.ico</ApplicationIcon>
+
+		<PackAsTool>true</PackAsTool>
+		<ToolCommandName>kitsub</ToolCommandName>
+
+		<PackageId>Kitsub</PackageId>
+		<Version>0.1.0</Version>
+		<Authors>AstraidLabs</Authors>
+		<Description>Kitsub - subtitle-first media CLI for fansub workflows.</Description>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<RepositoryUrl>https://github.com/AstraidLabs/Kitsub</RepositoryUrl>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Content Include="favicon.ico" Pack="true" PackagePath="\" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Content Include="tools/**" Condition="Exists('tools')" Pack="true" PackagePath="tools\">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="..\..\README.md" Pack="true" PackagePath="\" Condition="Exists('..\..\README.md')" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="../Kitsub.Core/Kitsub.Core.csproj" />
+		<ProjectReference Include="../Kitsub.Tooling/Kitsub.Tooling.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Spectre.Console" Version="0.54.0" />
+		<PackageReference Include="Spectre.Console.Cli" Version="0.53.1" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.1" />
+		<PackageReference Include="Serilog" Version="4.3.0" />
+		<PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
+		<PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+		<PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+	</ItemGroup>
 </Project>
