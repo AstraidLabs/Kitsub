@@ -1,4 +1,5 @@
 // Summary: Defines CLI settings for the release mux workflow.
+using Spectre.Console;
 using Spectre.Console.Cli;
 
 namespace Kitsub.Cli;
