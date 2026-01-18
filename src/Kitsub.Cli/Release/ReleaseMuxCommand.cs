@@ -81,9 +81,9 @@ public sealed class ReleaseMuxCommand : CommandBase<ReleaseMuxSettings>
             return ExitCodes.ValidationError;
         }
 
+        var hasAssInputs = subtitles.Any(subtitle => HasAssExtension(subtitle.FilePath));
         if (settings.DryRun)
         {
-            var hasAssInputs = subtitles.Any(subtitle => HasAssExtension(subtitle.FilePath));
             RenderDryRunPlan(tooling, inputPath, outputPath, fontsDir, subtitles, fontsToAttach.Length > 0, hasAssInputs, settings.Force);
             return ExitCodes.Success;
         }
@@ -98,7 +98,6 @@ public sealed class ReleaseMuxCommand : CommandBase<ReleaseMuxSettings>
         var tempFiles = new List<string>();
         string? outputCandidate = null;
         var fontsAttachedCount = 0;
-        var hasAssInputs = subtitles.Any(subtitle => HasAssExtension(subtitle.FilePath));
 
         try
         {
@@ -395,7 +394,7 @@ public sealed class ReleaseMuxCommand : CommandBase<ReleaseMuxSettings>
         IReadOnlyList<SubtitleDescriptor> subtitles,
         int fontsAttachedCount,
         IReadOnlyList<string> warnings,
-        ILogger logger)
+        ILogger<ReleaseMuxCommand> logger)
     {
         Console.MarkupLine("[green]Release mux complete.[/]");
         Console.MarkupLine($"[grey]Input:[/] {Markup.Escape(inputPath)}");
