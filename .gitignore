@@ -20,6 +20,8 @@ mono_crash.*
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
+!src/Kitsub.Cli/Release/
+!src/Kitsub.Cli/Release/**
 [Rr]eleases/
 x64/
 x86/

@@ -106,6 +106,13 @@ public static class Program
                 tools.AddCommand<ToolsCleanCommand>("clean").WithDescription("Delete extracted tool cache.");
             });
 
+            config.AddBranch("release", release =>
+            {
+                // Block: Configure release workflow commands.
+                release.SetDescription("Release workflows.");
+                release.AddCommand<ReleaseMuxCommand>("mux").WithDescription("Release mux workflow for MKV files.");
+            });
+
             config.AddBranch("config", configBranch =>
             {
                 // Block: Configure commands that manage Kitsub configuration files.
