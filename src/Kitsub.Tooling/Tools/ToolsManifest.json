@@ -14,7 +14,7 @@
       },
       "mkvtoolnix": {
         "version": "97.0",
-        "expectedSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "expectedSha256": "8eb55bb6d6c2df9080b7db2373df9963bb0c49f2db24c69c822aa5b6a4c79a42",
         "archiveUrl": "https://mkvtoolnix.download/windows/releases/97.0/mkvtoolnix-64-bit-97.0.7z",
         "sha256Url": "https://mkvtoolnix.download/windows/releases/97.0/sha256sums.txt",
         "sha256Entry": "mkvtoolnix-64-bit-97.0.7z",
@@ -26,7 +26,7 @@
       },
       "mediainfo": {
         "version": "25.10",
-        "expectedSha256": "e47978091e5716052409d776cafbd42819a17dc9ab4586f413faf60c82d39c92",
+        "expectedSha256": "E47978091E5716052409D776CAFBD42819A17DC9AB4586F413FAF60C82D39C92",
         "archiveUrl": "https://mediaarea.net/download/binary/mediainfo/25.10/MediaInfo_CLI_25.10_Windows_x64.zip",
         "archiveType": "zip",
         "extractMap": {
