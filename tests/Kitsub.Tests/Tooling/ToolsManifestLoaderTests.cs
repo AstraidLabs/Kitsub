@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Kitsub.Core;
 using Kitsub.Tooling.Provisioning;
 using Xunit;
 
@@ -84,7 +85,7 @@ public class ToolsManifestLoaderTests
         var manifest = ToolManifestLoader.Deserialize(json);
         var action = () => ToolManifestLoader.ValidateManifest(manifest);
 
-        action.Should().Throw<InvalidOperationException>()
+        action.Should().Throw<ConfigurationException>()
             .WithMessage("Tools manifest missing toolsetVersion.");
     }
 
