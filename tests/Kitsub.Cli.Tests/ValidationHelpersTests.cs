@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Kitsub.Cli;
+using Spectre.Console;
 using Spectre.Console.Cli;
 using Xunit;
 
