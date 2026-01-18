@@ -16,6 +16,7 @@ public class ToolsManifestLoaderTests
                        "win-x64": {
                          "ffmpeg": {
                            "version": "7.0",
+                           "expectedSha256": "0000000000000000000000000000000000000000000000000000000000000000",
                            "archiveUrl": "https://example.com/ffmpeg.7z",
                            "sha256Url": "https://example.com/ffmpeg.sha256",
                            "archiveType": "7z",
@@ -26,6 +27,7 @@ public class ToolsManifestLoaderTests
                          },
                          "mkvtoolnix": {
                            "version": "80.0",
+                           "expectedSha256": "0000000000000000000000000000000000000000000000000000000000000000",
                            "archiveUrl": "https://example.com/mkvtoolnix.7z",
                            "sha256Url": "https://example.com/mkvtoolnix.sha256",
                            "sha256Entry": "mkvtoolnix.7z",
@@ -33,6 +35,15 @@ public class ToolsManifestLoaderTests
                            "extractMap": {
                              "mkvmerge.exe": "bin/mkvmerge.exe",
                              "mkvpropedit.exe": "bin/mkvpropedit.exe"
+                           }
+                         },
+                         "mediainfo": {
+                           "version": "24.0",
+                           "expectedSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+                           "archiveUrl": "https://example.com/mediainfo.zip",
+                           "archiveType": "zip",
+                           "extractMap": {
+                             "mediainfo.exe": "mediainfo.exe"
                            }
                          }
                        }
