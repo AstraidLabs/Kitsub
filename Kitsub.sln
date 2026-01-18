@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kitsub", "src\Kitsub.Cli\Ki
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kitsub.Tests", "tests\Kitsub.Tests\Kitsub.Tests.csproj", "{C01BD659-ADE8-47EE-AEC7-9FF70039AE37}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kitsub.Cli.Tests", "tests\Kitsub.Cli.Tests\Kitsub.Cli.Tests.csproj", "{B8D45583-0138-4825-9B75-3B597BCF2A14}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,6 +34,10 @@ Global
 		{C01BD659-ADE8-47EE-AEC7-9FF70039AE37}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C01BD659-ADE8-47EE-AEC7-9FF70039AE37}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C01BD659-ADE8-47EE-AEC7-9FF70039AE37}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8D45583-0138-4825-9B75-3B597BCF2A14}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8D45583-0138-4825-9B75-3B597BCF2A14}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8D45583-0138-4825-9B75-3B597BCF2A14}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8D45583-0138-4825-9B75-3B597BCF2A14}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
