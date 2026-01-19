@@ -16,7 +16,12 @@ public sealed class DoctorCommand : CommandBase<DoctorCommand.Settings>
     {
     }
 
-    public DoctorCommand(IAnsiConsole console, ToolResolver toolResolver, AppConfigService configService) : base(console, configService)
+    public DoctorCommand(
+        IAnsiConsole console,
+        ToolResolver toolResolver,
+        ToolBundleManager bundleManager,
+        WindowsRidDetector ridDetector,
+        AppConfigService configService) : base(console, configService, toolResolver, bundleManager, ridDetector)
     {
         _toolResolver = toolResolver;
     }

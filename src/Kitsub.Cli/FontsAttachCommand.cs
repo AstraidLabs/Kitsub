@@ -56,7 +56,12 @@ public sealed class FontsAttachCommand : CommandBase<FontsAttachCommand.Settings
 
     /// <summary>Initializes the command with the console used for output.</summary>
     /// <param name="console">The console used to render command output.</param>
-    public FontsAttachCommand(IAnsiConsole console, ToolResolver toolResolver, AppConfigService configService) : base(console, configService)
+    public FontsAttachCommand(
+        IAnsiConsole console,
+        ToolResolver toolResolver,
+        ToolBundleManager bundleManager,
+        WindowsRidDetector ridDetector,
+        AppConfigService configService) : base(console, configService, toolResolver, bundleManager, ridDetector)
     {
         // Block: Delegate console handling to the base command class.
         _toolResolver = toolResolver;
@@ -79,5 +84,10 @@ public sealed class FontsAttachCommand : CommandBase<FontsAttachCommand.Settings
             .ConfigureAwait(false);
         Console.MarkupLine($"[green]Attached fonts into[/] {Markup.Escape(output)}");
         return 0;
+    }
+
+    protected override ToolRequirement GetToolRequirement(Settings settings)
+    {
+        return ToolRequirement.For(ToolKind.Mkvmerge);
     }
 }

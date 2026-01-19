@@ -38,6 +38,18 @@ public abstract class ToolSettings : CommandSettings
     /// <summary>Gets an optional override for the tools cache directory.</summary>
     public string? ToolsCacheDir { get; set; }
 
+    [CommandOption("--no-provision")]
+    /// <summary>Gets a value indicating whether tool provisioning is disabled.</summary>
+    public bool NoProvision { get; set; }
+
+    [CommandOption("--no-startup-prompt")]
+    /// <summary>Gets a value indicating whether startup tool prompts are disabled.</summary>
+    public bool NoStartupPrompt { get; set; }
+
+    [CommandOption("--check-updates")]
+    /// <summary>Gets a value indicating whether update checks should be forced at startup.</summary>
+    public bool CheckUpdates { get; set; }
+
     [CommandOption("--dry-run")]
     /// <summary>Gets a value indicating whether commands should run without making changes.</summary>
     public bool DryRun { get; set; }

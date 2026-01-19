@@ -1,5 +1,6 @@
 // Summary: Boots the CLI application, configures services, and registers command routes.
 using Kitsub.Core;
+using Kitsub.Tooling;
 using Kitsub.Tooling.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -41,6 +42,7 @@ public static class Program
         }
 
         var console = AnsiConsole.Create(consoleSettings);
+        AnsiConsole.Console = console;
 
         if (!noBanner)
         {
@@ -61,12 +63,18 @@ public static class Program
         services.AddSingleton<WindowsRidDetector>();
         services.AddSingleton<ToolBundleManager>();
         services.AddSingleton<ToolResolver>();
+        services.AddSingleton<StartupStateStore>();
+        services.AddSingleton<ToolsStartupCoordinator>();
 
         // Block: Wire up the Spectre.Console command app and its routes.
         var registrar = new TypeRegistrar(services);
         var app = new CommandApp(registrar);
+        var helpOnly = IsHelpInvocation(args);
+        using var provider = services.BuildServiceProvider();
+        var startupCoordinator = provider.GetRequiredService<ToolsStartupCoordinator>();
         app.Configure(config =>
         {
+            config.SetInterceptor(new StartupPromptInterceptor(startupCoordinator, effectiveConfig!, console, helpOnly));
             // Block: Register top-level commands and command groups for the CLI.
             config.SetApplicationName("kitsub");
             config.AddCommand<InspectCommand>("inspect").WithDescription("Inspect media file.");
@@ -150,6 +158,27 @@ public static class Program
         return new BootstrapOptions(noBanner, noColor);
     }
 
+    private static bool IsHelpInvocation(string[] args)
+    {
+        if (args.Length == 0)
+        {
+            return true;
+        }
+
+        foreach (var arg in args)
+        {
+            if (arg.Equals("--help", StringComparison.OrdinalIgnoreCase) ||
+                arg.Equals("-h", StringComparison.OrdinalIgnoreCase) ||
+                arg.Equals("-?", StringComparison.OrdinalIgnoreCase) ||
+                arg.Equals("help", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static void PrintBanner(IAnsiConsole console)
     {
         const string banner = """
@@ -170,4 +199,76 @@ public static class Program
     }
 
     private sealed record BootstrapOptions(bool NoBanner, bool NoColor);
+
+    private sealed class StartupPromptInterceptor : ICommandInterceptor
+    {
+        private readonly ToolsStartupCoordinator _coordinator;
+        private readonly AppConfig _config;
+        private readonly IAnsiConsole _console;
+        private readonly bool _helpOnly;
+
+        public StartupPromptInterceptor(
+            ToolsStartupCoordinator coordinator,
+            AppConfig config,
+            IAnsiConsole console,
+            bool helpOnly)
+        {
+            _coordinator = coordinator;
+            _config = config;
+            _console = console;
+            _helpOnly = helpOnly;
+        }
+
+        public void Intercept(CommandContext context, CommandSettings settings)
+        {
+            var toolSettings = settings as ToolSettings;
+            var overrides = toolSettings is null
+                ? new ToolOverrides(
+                    _config.Tools.Ffmpeg,
+                    _config.Tools.Ffprobe,
+                    _config.Tools.Mkvmerge,
+                    _config.Tools.Mkvpropedit,
+                    _config.Tools.Mediainfo)
+                : ToolingFactory.BuildToolOverrides(toolSettings);
+            var resolveOptions = toolSettings is null
+                ? BuildResolveOptionsFromConfig(_config)
+                : ToolingFactory.BuildResolveOptions(toolSettings, allowProvisioning: false);
+
+            var options = new ToolsStartupOptions(
+                _config.Tools.StartupPrompt ?? true,
+                _config.Tools.AutoUpdate ?? false,
+                _config.Tools.UpdatePromptOnStartup ?? true,
+                _config.Tools.CheckIntervalHours ?? 24,
+                toolSettings?.CheckUpdates ?? false,
+                toolSettings?.NoProvision ?? false,
+                toolSettings?.NoStartupPrompt ?? false,
+                _helpOnly);
+
+            _coordinator.RunAsync(
+                    _console,
+                    overrides,
+                    resolveOptions,
+                    options,
+                    context.GetCancellationToken())
+                .GetAwaiter()
+                .GetResult();
+        }
+
+        public void InterceptResult(CommandContext context, CommandSettings settings, ref int result)
+        {
+        }
+
+        private static ToolResolveOptions BuildResolveOptionsFromConfig(AppConfig config)
+        {
+            return new ToolResolveOptions
+            {
+                AllowProvisioning = false,
+                PreferBundled = config.Tools.PreferBundled ?? true,
+                PreferPath = config.Tools.PreferPath ?? false,
+                ToolsCacheDir = config.Tools.ToolsCacheDir,
+                DryRun = false,
+                Verbose = false
+            };
+        }
+    }
 }
