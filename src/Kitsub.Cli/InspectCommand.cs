@@ -304,7 +304,7 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
 
     private static bool IsInteractive()
     {
-        if (Console.IsInputRedirected || Console.IsOutputRedirected)
+        if (System.Console.IsInputRedirected || System.Console.IsOutputRedirected)
         {
             return false;
         }
