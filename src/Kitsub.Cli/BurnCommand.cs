@@ -97,7 +97,12 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
 
     /// <summary>Initializes the command with the console used for output.</summary>
     /// <param name="console">The console used to render command output.</param>
-    public BurnCommand(IAnsiConsole console, ToolResolver toolResolver, AppConfigService configService) : base(console, configService)
+    public BurnCommand(
+        IAnsiConsole console,
+        ToolResolver toolResolver,
+        ToolBundleManager bundleManager,
+        WindowsRidDetector ridDetector,
+        AppConfigService configService) : base(console, configService, toolResolver, bundleManager, ridDetector)
     {
         // Block: Delegate console handling to the base command class.
         _toolResolver = toolResolver;
@@ -197,6 +202,13 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
 
         settings.Crf ??= 18;
         settings.Preset ??= "medium";
+    }
+
+    protected override ToolRequirement GetToolRequirement(Settings settings)
+    {
+        return string.IsNullOrWhiteSpace(settings.TrackSelector)
+            ? ToolRequirement.For(ToolKind.Ffmpeg)
+            : ToolRequirement.For(ToolKind.Ffmpeg, ToolKind.Ffprobe);
     }
 
     private static void ValidateDefaults(Settings settings)

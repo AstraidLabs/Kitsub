@@ -34,6 +34,21 @@ public sealed class ToolsConfig
     [JsonPropertyName("toolsCacheDir")]
     public string? ToolsCacheDir { get; init; }
 
+    [JsonPropertyName("startupPrompt")]
+    public bool? StartupPrompt { get; init; }
+
+    [JsonPropertyName("commandPromptOnMissing")]
+    public bool? CommandPromptOnMissing { get; init; }
+
+    [JsonPropertyName("autoUpdate")]
+    public bool? AutoUpdate { get; init; }
+
+    [JsonPropertyName("updatePromptOnStartup")]
+    public bool? UpdatePromptOnStartup { get; init; }
+
+    [JsonPropertyName("checkIntervalHours")]
+    public int? CheckIntervalHours { get; init; }
+
     [JsonPropertyName("ffmpeg")]
     public string? Ffmpeg { get; init; }
 

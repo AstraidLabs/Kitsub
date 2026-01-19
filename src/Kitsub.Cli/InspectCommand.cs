@@ -29,10 +29,6 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
         /// <summary>Gets the path to the media file when using a specialized inspection mode.</summary>
         public string? FilePath { get; init; }
 
-        [CommandOption("--no-provision")]
-        /// <summary>Gets a value indicating whether provisioning is disabled for MediaInfo inspections.</summary>
-        public bool NoProvision { get; init; }
-
         /// <summary>Validates the provided settings for media inspection.</summary>
         /// <returns>A validation result indicating success or failure.</returns>
         public override ValidationResult Validate()
@@ -70,7 +66,7 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
         ToolBundleManager bundleManager,
         ToolCachePaths cachePaths,
         WindowsRidDetector ridDetector,
-        AppConfigService configService) : base(console, configService)
+        AppConfigService configService) : base(console, configService, toolResolver, bundleManager, ridDetector)
     {
         // Block: Delegate console handling to the base command class.
         _toolResolver = toolResolver;
@@ -123,6 +119,19 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
         }
 
         return 0;
+    }
+
+    protected override ToolRequirement GetToolRequirement(Settings settings)
+    {
+        if (settings.Target.Equals("mediainfo", StringComparison.OrdinalIgnoreCase))
+        {
+            return ToolRequirement.None;
+        }
+
+        var filePath = settings.Target;
+        return Path.GetExtension(filePath).Equals(".mkv", StringComparison.OrdinalIgnoreCase)
+            ? ToolRequirement.For(ToolKind.Mkvmerge)
+            : ToolRequirement.For(ToolKind.Ffprobe);
     }
 
     private async Task<int> ExecuteMediaInfoAsync(Settings settings, CancellationToken cancellationToken)

@@ -55,7 +55,12 @@ public sealed class ExtractSubCommand : CommandBase<ExtractSubCommand.Settings>
 
     /// <summary>Initializes the command with the console used for output.</summary>
     /// <param name="console">The console used to render command output.</param>
-    public ExtractSubCommand(IAnsiConsole console, ToolResolver toolResolver, AppConfigService configService) : base(console, configService)
+    public ExtractSubCommand(
+        IAnsiConsole console,
+        ToolResolver toolResolver,
+        ToolBundleManager bundleManager,
+        WindowsRidDetector ridDetector,
+        AppConfigService configService) : base(console, configService, toolResolver, bundleManager, ridDetector)
     {
         // Block: Delegate console handling to the base command class.
         _toolResolver = toolResolver;
@@ -87,5 +92,10 @@ public sealed class ExtractSubCommand : CommandBase<ExtractSubCommand.Settings>
             cancellationToken).ConfigureAwait(false);
         Console.MarkupLine($"[green]Extracted subtitles to[/] {Markup.Escape(settings.OutputFile)}");
         return 0;
+    }
+
+    protected override ToolRequirement GetToolRequirement(Settings settings)
+    {
+        return ToolRequirement.For(ToolKind.Ffprobe, ToolKind.Ffmpeg);
     }
 }
