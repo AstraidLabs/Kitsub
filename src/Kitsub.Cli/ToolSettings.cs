@@ -4,7 +4,7 @@ using Spectre.Console.Cli;
 namespace Kitsub.Cli;
 
 /// <summary>Represents common command-line settings for tool discovery and logging.</summary>
-public abstract class ToolSettings : CommandSettings
+public abstract class ToolSettings : GlobalSettings
 {
     [CommandOption("--ffmpeg <PATH>")]
     /// <summary>Gets the path or command name used to invoke ffmpeg.</summary>
@@ -37,18 +37,6 @@ public abstract class ToolSettings : CommandSettings
     [CommandOption("--tools-cache-dir <PATH>")]
     /// <summary>Gets an optional override for the tools cache directory.</summary>
     public string? ToolsCacheDir { get; set; }
-
-    [CommandOption("--no-provision")]
-    /// <summary>Gets a value indicating whether tool provisioning is disabled.</summary>
-    public bool NoProvision { get; set; }
-
-    [CommandOption("--no-startup-prompt")]
-    /// <summary>Gets a value indicating whether startup tool prompts are disabled.</summary>
-    public bool NoStartupPrompt { get; set; }
-
-    [CommandOption("--check-updates")]
-    /// <summary>Gets a value indicating whether update checks should be forced at startup.</summary>
-    public bool CheckUpdates { get; set; }
 
     [CommandOption("--dry-run")]
     /// <summary>Gets a value indicating whether commands should run without making changes.</summary>

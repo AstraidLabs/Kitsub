@@ -7,7 +7,7 @@ namespace Kitsub.Cli;
 /// <summary>Displays resolved configuration file paths.</summary>
 public sealed class ConfigPathCommand : ConfigCommandBase<ConfigPathCommand.Settings>
 {
-    public sealed class Settings : CommandSettings
+    public sealed class Settings : GlobalSettings
     {
     }
 

@@ -87,7 +87,18 @@ public abstract class CommandBase<TSettings> : AsyncCommand<TSettings> where TSe
 
         Console.MarkupLine($"[red]Command unavailable. Missing required tools: {Markup.Escape(string.Join(", ", missing.Select(FormatToolName)))}.[/]");
 
-        if (settings.NoProvision || !IsInteractive(Console) || EffectiveConfig.Tools.CommandPromptOnMissing == false)
+        if (settings.NoProvision)
+        {
+            RenderProvisioningInstructions();
+            return ExitCodes.ValidationError;
+        }
+
+        if (settings.AssumeYes)
+        {
+            return await ProvisionRequiredToolsAsync(settings, requirement, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (!IsInteractive() || EffectiveConfig.Tools.CommandPromptOnMissing == false)
         {
             RenderProvisioningInstructions();
             return ExitCodes.ValidationError;
@@ -99,6 +110,16 @@ public abstract class CommandBase<TSettings> : AsyncCommand<TSettings> where TSe
             RenderProvisioningInstructions();
             return ExitCodes.ValidationError;
         }
+
+        return await ProvisionRequiredToolsAsync(settings, requirement, cancellationToken).ConfigureAwait(false);
+
+    }
+
+    private async Task<int?> ProvisionRequiredToolsAsync(
+        TSettings settings,
+        ToolRequirement requirement,
+        CancellationToken cancellationToken)
+    {
 
         if (!_ridDetector.IsWindows)
         {
@@ -127,7 +148,7 @@ public abstract class CommandBase<TSettings> : AsyncCommand<TSettings> where TSe
             return ExitCodes.ProvisioningFailure;
         }
 
-        missing = GetMissingTools(settings, requirement);
+        var missing = GetMissingTools(settings, requirement);
         if (missing.Count > 0)
         {
             Console.MarkupLine("[red]Tool provisioning completed but required tools are still missing.[/]");
@@ -225,22 +246,14 @@ public abstract class CommandBase<TSettings> : AsyncCommand<TSettings> where TSe
         return null;
     }
 
-    private static bool IsInteractive(IAnsiConsole console)
+    private static bool IsInteractive()
     {
-        var isCi = Environment.GetEnvironmentVariable("CI");
-        if (!string.IsNullOrWhiteSpace(isCi) &&
-            !string.Equals(isCi, "false", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(isCi, "0", StringComparison.OrdinalIgnoreCase))
+        if (Console.IsInputRedirected || Console.IsOutputRedirected)
         {
             return false;
         }
 
-        if (Console.IsInputRedirected || Console.IsOutputRedirected || Console.IsErrorRedirected)
-        {
-            return false;
-        }
-
-        return console.Profile.Out.IsTerminal;
+        return Environment.UserInteractive;
     }
 
     private void RenderProvisioningInstructions()

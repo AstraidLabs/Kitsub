@@ -2,7 +2,9 @@
 
 ## Tool Provisioning Prompts
 
-Kitsub can prompt to download bundled tools on startup and when a command requires missing tools. You can disable prompts with `--no-startup-prompt` or `--no-provision`, and force update checks (when `tools.autoUpdate` is true) with `--check-updates`. Configure defaults in `kitsub.json` under `tools.startupPrompt`, `tools.commandPromptOnMissing`, `tools.autoUpdate`, `tools.updatePromptOnStartup`, and `tools.checkIntervalHours`.
+Kitsub can prompt to download bundled tools on startup and when a command requires missing tools. You can disable prompts with `--no-startup-prompt` or `--no-provision`, auto-accept provisioning with `--yes`, and force update checks (when `tools.autoUpdate` is true) with `--check-updates`. Configure defaults in `kitsub.json` under `tools.startupPrompt`, `tools.commandPromptOnMissing`, `tools.autoUpdate`, `tools.updatePromptOnStartup`, and `tools.checkIntervalHours`.
+
+In non-interactive environments, Kitsub will not prompt; missing tool provisioning fails unless `--yes` is provided. Startup update prompts are throttled to at most once per `checkIntervalHours`.
 
 ## Release Workflow (MKV Only)
 
