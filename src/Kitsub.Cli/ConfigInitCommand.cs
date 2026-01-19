@@ -8,7 +8,7 @@ namespace Kitsub.Cli;
 /// <summary>Initializes the global configuration file.</summary>
 public sealed class ConfigInitCommand : ConfigCommandBase<ConfigInitCommand.Settings>
 {
-    public sealed class Settings : CommandSettings
+    public sealed class Settings : GlobalSettings
     {
         [CommandOption("--force")]
         public bool Force { get; set; }

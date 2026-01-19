@@ -222,6 +222,7 @@ public static class Program
         public void Intercept(CommandContext context, CommandSettings settings)
         {
             var toolSettings = settings as ToolSettings;
+            var globalSettings = settings as GlobalSettings;
             var overrides = toolSettings is null
                 ? new ToolOverrides(
                     _config.Tools.Ffmpeg,
@@ -239,9 +240,10 @@ public static class Program
                 _config.Tools.AutoUpdate ?? false,
                 _config.Tools.UpdatePromptOnStartup ?? true,
                 _config.Tools.CheckIntervalHours ?? 24,
-                toolSettings?.CheckUpdates ?? false,
-                toolSettings?.NoProvision ?? false,
-                toolSettings?.NoStartupPrompt ?? false,
+                globalSettings?.CheckUpdates ?? false,
+                globalSettings?.AssumeYes ?? false,
+                globalSettings?.NoProvision ?? false,
+                globalSettings?.NoStartupPrompt ?? false,
                 _helpOnly);
 
             _coordinator.RunAsync(
