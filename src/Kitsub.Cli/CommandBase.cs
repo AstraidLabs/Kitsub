@@ -248,7 +248,7 @@ public abstract class CommandBase<TSettings> : AsyncCommand<TSettings> where TSe
 
     private static bool IsInteractive()
     {
-        if (Console.IsInputRedirected || Console.IsOutputRedirected)
+        if (System.Console.IsInputRedirected || System.Console.IsOutputRedirected)
         {
             return false;
         }
