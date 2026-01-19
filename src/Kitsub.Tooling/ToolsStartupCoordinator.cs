@@ -12,6 +12,7 @@ public sealed record ToolsStartupOptions(
     bool UpdatePromptOnStartup,
     int CheckIntervalHours,
     bool ForceUpdateCheck,
+    bool AssumeYes,
     bool NoProvision,
     bool NoStartupPrompt,
     bool IsHelpInvocation);
@@ -55,11 +56,6 @@ public sealed class ToolsStartupCoordinator
             return;
         }
 
-        if (options.NoProvision || !IsInteractive(console))
-        {
-            return;
-        }
-
         if (!_ridDetector.IsWindows)
         {
             return;
@@ -79,14 +75,34 @@ public sealed class ToolsStartupCoordinator
         if (baselineMissing)
         {
             console.MarkupLine("[yellow]Required tools not found (mkvmerge, ffprobe).[/]");
-            var download = AnsiConsole.Confirm("Download required tools now?", defaultValue: false);
-            if (!download)
+            if (options.NoProvision)
             {
                 return;
             }
 
-            var provisioned = await ProvisionToolsAsync(console, rid, resolveOptions, cancellationToken).ConfigureAwait(false);
-            if (!provisioned)
+            if (options.AssumeYes)
+            {
+                var provisioned = await ProvisionToolsAsync(console, rid, resolveOptions, cancellationToken).ConfigureAwait(false);
+                if (!provisioned)
+                {
+                    return;
+                }
+            }
+            else if (IsInteractive())
+            {
+                var download = AnsiConsole.Confirm("Download required tools now?", defaultValue: false);
+                if (!download)
+                {
+                    return;
+                }
+
+                var provisioned = await ProvisionToolsAsync(console, rid, resolveOptions, cancellationToken).ConfigureAwait(false);
+                if (!provisioned)
+                {
+                    return;
+                }
+            }
+            else
             {
                 return;
             }
@@ -97,22 +113,12 @@ public sealed class ToolsStartupCoordinator
             return;
         }
 
-        var now = DateTimeOffset.UtcNow;
-        var state = _stateStore.Load();
-        var intervalHours = options.CheckIntervalHours < 1 ? 24 : options.CheckIntervalHours;
-        var interval = TimeSpan.FromHours(intervalHours);
-        if (!options.ForceUpdateCheck &&
-            state.LastStartupCheckUtc.HasValue &&
-            now - state.LastStartupCheckUtc.Value < interval)
+        if (options.NoProvision || !IsInteractive())
         {
             return;
         }
 
-        state = state with { LastStartupCheckUtc = now };
         var installedVersion = TryGetInstalledToolsetVersion(rid, resolveOptions.ToolsCacheDir);
-        state = state with { LastInstalledToolsetVersionSeen = installedVersion };
-        _stateStore.Save(state);
-
         if (string.IsNullOrWhiteSpace(installedVersion))
         {
             return;
@@ -121,6 +127,35 @@ public sealed class ToolsStartupCoordinator
         var manifestVersion = _bundleManager.Manifest.ToolsetVersion;
         if (string.Equals(installedVersion, manifestVersion, StringComparison.OrdinalIgnoreCase))
         {
+            return;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var state = _stateStore.Load();
+        var intervalHours = options.CheckIntervalHours < 1 ? 24 : options.CheckIntervalHours;
+        var interval = TimeSpan.FromHours(intervalHours);
+        if (!options.ForceUpdateCheck &&
+            state.LastUpdatePromptUtc.HasValue &&
+            now - state.LastUpdatePromptUtc.Value < interval)
+        {
+            return;
+        }
+
+        state = state with
+        {
+            LastUpdatePromptUtc = now,
+            LastInstalledToolsetVersion = installedVersion
+        };
+        _stateStore.Save(state);
+
+        if (options.AssumeYes)
+        {
+            var updated = await ProvisionToolsAsync(console, rid, resolveOptions, cancellationToken).ConfigureAwait(false);
+            if (updated)
+            {
+                _stateStore.Save(state with { LastInstalledToolsetVersion = manifestVersion });
+            }
+
             return;
         }
 
@@ -133,7 +168,7 @@ public sealed class ToolsStartupCoordinator
         var updated = await ProvisionToolsAsync(console, rid, resolveOptions, cancellationToken).ConfigureAwait(false);
         if (updated)
         {
-            _stateStore.Save(state with { LastInstalledToolsetVersionSeen = manifestVersion });
+            _stateStore.Save(state with { LastInstalledToolsetVersion = manifestVersion });
         }
     }
 
@@ -262,21 +297,13 @@ public sealed class ToolsStartupCoordinator
         return null;
     }
 
-    private static bool IsInteractive(IAnsiConsole console)
+    private static bool IsInteractive()
     {
-        var isCi = Environment.GetEnvironmentVariable("CI");
-        if (!string.IsNullOrWhiteSpace(isCi) &&
-            !string.Equals(isCi, "false", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(isCi, "0", StringComparison.OrdinalIgnoreCase))
+        if (Console.IsInputRedirected || Console.IsOutputRedirected)
         {
             return false;
         }
 
-        if (Console.IsInputRedirected || Console.IsOutputRedirected || Console.IsErrorRedirected)
-        {
-            return false;
-        }
-
-        return console.Profile.Out.IsTerminal;
+        return Environment.UserInteractive;
     }
 }

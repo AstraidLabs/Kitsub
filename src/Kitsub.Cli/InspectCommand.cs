@@ -161,6 +161,22 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
                 return ExitCodes.ValidationError;
             }
 
+            if (!settings.AssumeYes)
+            {
+                if (!IsInteractive())
+                {
+                    Console.MarkupLine("[red]MediaInfo not found. Use --mediainfo or configure tools.mediainfo, or rerun with --yes to auto-download.[/]");
+                    return ExitCodes.ValidationError;
+                }
+
+                var download = AnsiConsole.Confirm("Download MediaInfo now?", defaultValue: false);
+                if (!download)
+                {
+                    Console.MarkupLine("[red]MediaInfo not found. Use --mediainfo or configure tools.mediainfo, or rerun with --yes to auto-download.[/]");
+                    return ExitCodes.ValidationError;
+                }
+            }
+
             var provisionOptions = ToolingFactory.BuildResolveOptions(settings, allowProvisioning: true);
             var provisionResult = await SpectreProgressReporter.RunWithProgressAsync(
                 Console,
@@ -284,6 +300,16 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
         }
 
         return null;
+    }
+
+    private static bool IsInteractive()
+    {
+        if (Console.IsInputRedirected || Console.IsOutputRedirected)
+        {
+            return false;
+        }
+
+        return Environment.UserInteractive;
     }
 
     private void RenderTracks(MediaInfo info)

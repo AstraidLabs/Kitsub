@@ -8,7 +8,7 @@ namespace Kitsub.Cli;
 /// <summary>Shows configuration files for Kitsub.</summary>
 public sealed class ConfigShowCommand : ConfigCommandBase<ConfigShowCommand.Settings>
 {
-    public sealed class Settings : CommandSettings
+    public sealed class Settings : GlobalSettings
     {
         [CommandOption("--effective")]
         public bool Effective { get; set; }

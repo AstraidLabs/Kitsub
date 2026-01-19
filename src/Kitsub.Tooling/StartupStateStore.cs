@@ -1,11 +1,14 @@
-// Summary: Persists startup tool prompt state for throttling update checks.
+// Summary: Persists startup tool prompt state for throttling update prompts.
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 
 namespace Kitsub.Tooling;
 
 /// <summary>Represents persisted tool startup state.</summary>
-public sealed record StartupState(DateTimeOffset? LastStartupCheckUtc, string? LastInstalledToolsetVersionSeen);
+public sealed record StartupState(
+    [property: JsonPropertyName("lastUpdatePromptUtc")] DateTimeOffset? LastUpdatePromptUtc,
+    [property: JsonPropertyName("lastInstalledToolsetVersion")] string? LastInstalledToolsetVersion);
 
 /// <summary>Stores and retrieves startup prompt state for tool updates.</summary>
 public sealed class StartupStateStore
