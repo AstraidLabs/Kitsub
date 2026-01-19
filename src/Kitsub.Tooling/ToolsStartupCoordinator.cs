@@ -150,8 +150,8 @@ public sealed class ToolsStartupCoordinator
 
         if (options.AssumeYes)
         {
-            var updated = await ProvisionToolsAsync(console, rid, resolveOptions, cancellationToken).ConfigureAwait(false);
-            if (updated)
+            var autoUpdated = await ProvisionToolsAsync(console, rid, resolveOptions, cancellationToken).ConfigureAwait(false);
+            if (autoUpdated)
             {
                 _stateStore.Save(state with { LastInstalledToolsetVersion = manifestVersion });
             }
