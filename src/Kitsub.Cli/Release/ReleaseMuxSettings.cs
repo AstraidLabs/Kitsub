@@ -59,10 +59,6 @@ public sealed class ReleaseMuxSettings : ToolSettings
     /// <summary>Gets a value indicating whether warnings should be treated as errors.</summary>
     public bool? Strict { get; set; }
 
-    [CommandOption("--no-provision")]
-    /// <summary>Gets a value indicating whether tool provisioning is disabled.</summary>
-    public bool NoProvision { get; set; }
-
     [CommandOption("--spec <PATH>")]
     /// <summary>Gets the optional release spec JSON file path.</summary>
     public string? SpecPath { get; set; }

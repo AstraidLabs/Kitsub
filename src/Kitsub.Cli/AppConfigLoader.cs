@@ -192,6 +192,11 @@ public sealed class AppConfigLoader
             throw new ConfigurationException("Burn CRF must be between 0 and 51.");
         }
 
+        if (config.Tools.CheckIntervalHours is < 1)
+        {
+            throw new ConfigurationException("Tools checkIntervalHours must be at least 1.");
+        }
+
         if (!string.IsNullOrWhiteSpace(config.Logging.LogLevel))
         {
             try
@@ -259,6 +264,11 @@ public sealed class AppConfigLoader
                 PreferBundled = overrideConfig.Tools.PreferBundled ?? baseConfig.Tools.PreferBundled,
                 PreferPath = overrideConfig.Tools.PreferPath ?? baseConfig.Tools.PreferPath,
                 ToolsCacheDir = overrideConfig.Tools.ToolsCacheDir ?? baseConfig.Tools.ToolsCacheDir,
+                StartupPrompt = overrideConfig.Tools.StartupPrompt ?? baseConfig.Tools.StartupPrompt,
+                CommandPromptOnMissing = overrideConfig.Tools.CommandPromptOnMissing ?? baseConfig.Tools.CommandPromptOnMissing,
+                AutoUpdate = overrideConfig.Tools.AutoUpdate ?? baseConfig.Tools.AutoUpdate,
+                UpdatePromptOnStartup = overrideConfig.Tools.UpdatePromptOnStartup ?? baseConfig.Tools.UpdatePromptOnStartup,
+                CheckIntervalHours = overrideConfig.Tools.CheckIntervalHours ?? baseConfig.Tools.CheckIntervalHours,
                 Ffmpeg = overrideConfig.Tools.Ffmpeg ?? baseConfig.Tools.Ffmpeg,
                 Ffprobe = overrideConfig.Tools.Ffprobe ?? baseConfig.Tools.Ffprobe,
                 Mkvmerge = overrideConfig.Tools.Mkvmerge ?? baseConfig.Tools.Mkvmerge,

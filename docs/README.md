@@ -1,5 +1,9 @@
 # Kitsub CLI Documentation
 
+## Tool Provisioning Prompts
+
+Kitsub can prompt to download bundled tools on startup and when a command requires missing tools. You can disable prompts with `--no-startup-prompt` or `--no-provision`, and force update checks (when `tools.autoUpdate` is true) with `--check-updates`. Configure defaults in `kitsub.json` under `tools.startupPrompt`, `tools.commandPromptOnMissing`, `tools.autoUpdate`, `tools.updatePromptOnStartup`, and `tools.checkIntervalHours`.
+
 ## Release Workflow (MKV Only)
 
 The release workflow commands are MKV-only and will reject any non-MKV input or output.

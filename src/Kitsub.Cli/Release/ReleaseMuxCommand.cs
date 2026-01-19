@@ -19,7 +19,12 @@ public sealed class ReleaseMuxCommand : CommandBase<ReleaseMuxSettings>
     /// <param name="console">The console used to render command output.</param>
     /// <param name="toolResolver">The tool resolver used to locate external tools.</param>
     /// <param name="configService">The configuration service used for defaults.</param>
-    public ReleaseMuxCommand(IAnsiConsole console, ToolResolver toolResolver, AppConfigService configService) : base(console, configService)
+    public ReleaseMuxCommand(
+        IAnsiConsole console,
+        ToolResolver toolResolver,
+        ToolBundleManager bundleManager,
+        WindowsRidDetector ridDetector,
+        AppConfigService configService) : base(console, configService, toolResolver, bundleManager, ridDetector)
     {
         _toolResolver = toolResolver;
     }
@@ -149,6 +154,11 @@ public sealed class ReleaseMuxCommand : CommandBase<ReleaseMuxSettings>
         }
 
         return ExitCodes.Success;
+    }
+
+    protected override ToolRequirement GetToolRequirement(ReleaseMuxSettings settings)
+    {
+        return ToolRequirement.For(ToolKind.Mkvmerge);
     }
 
     private static ReleaseSpec? LoadSpec(ReleaseMuxSettings settings)

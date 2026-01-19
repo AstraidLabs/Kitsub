@@ -172,7 +172,7 @@ public static class ToolingFactory
             ToolsCacheDir = settings.ToolsCacheDir,
             DryRun = settings.DryRun,
             Verbose = settings.Verbose,
-            AllowProvisioning = allowProvisioning
+            AllowProvisioning = allowProvisioning && !settings.NoProvision
         };
     }
 }
