@@ -1,4 +1,4 @@
-# 🧰 Kitsub — subtitle-first CLI for video workflows
+# 🧰 Kitsub — Video & Subtitle buildtool
 
 [![License](https://img.shields.io/github/license/AstraidLabs/Kitsub?label=license)](LICENSE.txt)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
