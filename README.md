@@ -1,65 +1,33 @@
-# Kitsub
+# 🦊 Kitsub
+🎬 **Video & subtitle build tool**
 
-Video & subtitle build tool for repeatable, automated outputs.
+Kitsub is a CLI tool for building video outputs with burned-in or muxed subtitles. It uses external media tools such as FFmpeg, MKVToolNix, and MediaInfo when available.
 
-## What it is
+## Overview
 
-Kitsub is a CLI-first tool for building video outputs with subtitles in a repeatable,
-automation-friendly way. It drives external tooling such as FFmpeg/ffprobe, MKVToolNix
-(mkvmerge/mkvpropedit), and MediaInfo when available or provisioned. Tool provisioning
-is Windows-only; on other platforms, provide tool paths or use tools on PATH.
+- Command-line tool for video and subtitle processing.
+- Commands for inspection, muxing, burning, extraction, conversion, diagnostics, and tool management.
+- Uses external tooling via configurable paths.
 
-## Kitsub is / is not
+## Usage
 
-**Kitsub is:**
-- A CLI-first video & subtitle build tool.
-- Automation-friendly and repeatable by design.
-- Focused on workflows that compose well in scripts.
-
-**Kitsub is not:**
-- A subtitle editor (e.g., Aegisub).
-- A GUI application.
-- An all-in-one solution for every media workflow.
-
-## Quick start
-
-```powershell
+```bash
 kitsub --help
 kitsub <command> --help
 ```
 
-### Build from source
-
-```powershell
-dotnet build Kitsub.sln
-
-dotnet publish src/Kitsub.Cli -c Release -r win-x64 --self-contained false
-```
-
-For usage examples, see [Instructions.md](Instructions.md).
+For practical examples, see [Instructions.md](Instructions.md).
 
 ## Documentation
 
-- [Instructions.md](Instructions.md) — practical usage and examples.
-- [docs/README.md](docs/README.md) — additional CLI notes and release workflow details.
-- [TESTING.md](TESTING.md) — test commands.
+- [Instructions.md](Instructions.md)
+- [docs/README.md](docs/README.md)
+- [TESTING.md](TESTING.md)
+- [docs/TESTING.md](docs/TESTING.md)
+- [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
 - [LICENSE.txt](LICENSE.txt)
 
-## Maintenance policy
-
 Maintained by a single author.
-
-- No SLA.
-- Focus: correctness, stability, maintainability.
-- Best-effort support.
-
-**Reporting bugs**
-- OS + version
-- Kitsub version/commit
-- Full command line used
-- Input details (safe to share)
-- Logs/output
-- Expected vs. actual behavior
 
 ## License
 

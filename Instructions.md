@@ -1,77 +1,51 @@
 # Instructions
 
-## Overview
+## Getting help
 
-This document is the practical usage guide for Kitsub. All commands and options shown
-here are derived from the CLI command definitions in the repository.
-
-## Install / Build
-
-Build from source:
-
-```powershell
-dotnet build Kitsub.sln
-
-dotnet publish src/Kitsub.Cli -c Release -r win-x64 --self-contained false
-```
-
-## CLI overview
-
-Discover commands and options:
-
-```powershell
+```bash
 kitsub --help
 kitsub <command> --help
 ```
 
-Top-level commands:
+## Build and run from source
 
-- `inspect`
-- `mux`
-- `burn`
-- `fonts` (`attach`, `check`)
-- `extract` (`audio`, `sub`, `video`)
-- `convert` (`sub`)
-- `tools` (`status`, `fetch`, `clean`)
-- `release` (`mux`)
-- `config` (`path`, `init`, `show`)
-- `doctor`
+```bash
+dotnet build Kitsub.sln
+```
+
+```bash
+dotnet run --project src/Kitsub.Cli -- --help
+```
 
 ## Examples
 
-### Inspect a media file
-
-**Goal:** Print stream/track information for a media file.
+### Example: Inspect a media file
 
 **Inputs:**
 - `INPUT_FILE` — path to a media file (placeholder)
 
 **Command:**
 
-```powershell
+```bash
 kitsub inspect "INPUT_FILE"
 ```
 
-**Expected result:** Track information is printed to the console.
+**Result:** Track metadata is printed to the console.
 
-### Generate a MediaInfo JSON report
-
-**Goal:** Save a MediaInfo JSON report for a file.
+### Example: Generate a MediaInfo JSON report
 
 **Inputs:**
 - `INPUT_FILE` — path to a media file (placeholder)
 
 **Command:**
 
-```powershell
+```bash
 kitsub inspect mediainfo "INPUT_FILE"
 ```
 
-**Expected result:** A JSON report is saved under `./reports/mediainfo/<YYYYMMDD>/` with a generated filename.
+**Result:** A JSON report is written under `./reports/mediainfo/<YYYYMMDD>/` with a generated filename.
 
-### Mux subtitles into an MKV
-
-**Goal:** Add subtitle tracks to an MKV file.
+### Example: Mux subtitles into an MKV
 
 **Inputs:**
 - `INPUT_MKV` — input MKV file (placeholder)
@@ -80,72 +54,60 @@ kitsub inspect mediainfo "INPUT_FILE"
 
 **Command:**
 
-```powershell
+```bash
 kitsub mux --in "INPUT_MKV" --sub "SUB_FILE" --lang eng --title "English" --default --out "OUTPUT_MKV"
 ```
 
-**Expected result:** A new MKV is written to the output path.
+**Result:** An MKV file is written to the output path.
 
-### Burn subtitles into a video
-
-**Goal:** Render a subtitle file directly into video output.
+### Example: Burn subtitles into a video
 
 **Inputs:**
 - `INPUT_FILE` — input media file (placeholder)
 - `SUB_FILE` — subtitle file (placeholder)
-- `OUTPUT_FILE` — output video file (placeholder)
+- `OUTPUT_FILE` — output media file (placeholder)
 
 **Command:**
 
-```powershell
+```bash
 kitsub burn --in "INPUT_FILE" --sub "SUB_FILE" --out "OUTPUT_FILE" --crf 18 --preset medium
 ```
 
-**Expected result:** A new video file is written to the output path.
+**Result:** A video file is written to the output path.
 
-### Release mux using a JSON spec
-
-**Goal:** Mux multiple subtitle tracks using a spec file.
+### Example: Extract a subtitle track
 
 **Inputs:**
-- `release.json` — release spec file (example below)
-
-**Spec example:**
-
-```json
-{
-  "input": "E01.mkv",
-  "output": "E01.release.mkv",
-  "fontsDir": ".\\fonts",
-  "strict": false,
-  "subtitles": [
-    { "path": "CZ.ass", "lang": "ces", "title": "Czech", "default": true, "forced": false },
-    { "path": "EN.ass", "lang": "eng", "title": "English", "default": false, "forced": false }
-  ]
-}
-```
+- `INPUT_FILE` — input media file (placeholder)
+- `TRACK_SELECTOR` — subtitle track selector (placeholder)
+- `OUTPUT_SUB` — output subtitle file (placeholder)
 
 **Command:**
 
-```powershell
-kitsub release mux --spec ".\\release.json"
+```bash
+kitsub extract sub --in "INPUT_FILE" --track "TRACK_SELECTOR" --out "OUTPUT_SUB"
 ```
 
-**Expected result:** An MKV file is generated according to the spec.
+**Result:** A subtitle file is written to the output path.
 
-## Common patterns
+## CLI reference
 
-### Global flags for tool-driven commands
-
-These options are available on commands that run external tools:
-
-- Tool paths: `--ffmpeg`, `--ffprobe`, `--mkvmerge`, `--mkvpropedit`, `--mediainfo`
-- Tool resolution: `--prefer-bundled <BOOL>`, `--prefer-path <BOOL>`, `--tools-cache-dir <PATH>`
-- Provisioning: `--assume-yes`, `--no-provision`, `--no-startup-prompt`, `--check-updates`
-- Logging/output: `--dry-run`, `--verbose`, `--log-file <PATH>`, `--log-level <trace|debug|info|warn|error>`, `--no-log`, `--no-banner`, `--no-color`, `--progress <auto|on|off>`
-
-## Troubleshooting
-
-- Logs default to `logs/kitsub.log` relative to the working directory unless overridden.
-- Tool provisioning is only available on Windows; on other platforms, configure tool paths or install tools on PATH.
-- Use `kitsub tools status` to check resolved tool paths.
+| Command | Purpose |
+| --- | --- |
+| `inspect` | Inspect media file. |
+| `mux` | Mux subtitles into MKV. |
+| `burn` | Burn subtitles into video. |
+| `fonts attach` | Attach fonts to MKV. |
+| `fonts check` | Check fonts in MKV. |
+| `extract audio` | Extract audio track. |
+| `extract sub` | Extract subtitle track. |
+| `extract video` | Extract video track. |
+| `convert sub` | Convert subtitle file. |
+| `tools status` | Show resolved tool paths. |
+| `tools fetch` | Download and cache tool binaries. |
+| `tools clean` | Delete extracted tool cache. |
+| `release mux` | Release mux for MKV files. |
+| `config path` | Show resolved configuration paths. |
+| `config init` | Initialize the default configuration file. |
+| `config show` | Display configuration files. |
+| `doctor` | Run diagnostics and tool checks. |
