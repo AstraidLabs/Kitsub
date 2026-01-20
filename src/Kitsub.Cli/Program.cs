@@ -190,7 +190,7 @@ public static class Program
 .,oocd0XNWMMWKx0Nk;    ████   ██   ██  ███▄▄ ██ ██ ██▄██
 ..:lc:lkXNKkxod0Ol'    ██ ▀█▄ ██   ██  ▄▄██▀ ▀███▀ ██▄█▀
    .'cdxKXOxkkc..      
-      ,kKXXKo.         Burn-In Toolkit.
+      ,kKXXKo.         Video & subtitle build tool.
        :0Xd,.          
         ,:.            
 """;
