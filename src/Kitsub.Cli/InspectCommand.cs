@@ -165,14 +165,14 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
             {
                 if (!IsInteractive())
                 {
-                    Console.MarkupLine("[red]MediaInfo not found. Use --mediainfo or configure tools.mediainfo, or rerun with --yes to auto-download.[/]");
+                    Console.MarkupLine("[red]MediaInfo not found. Use --mediainfo or configure tools.mediainfo, or rerun with --assume-yes to auto-download.[/]");
                     return ExitCodes.ValidationError;
                 }
 
                 var download = AnsiConsole.Confirm("Download MediaInfo now?", defaultValue: false);
                 if (!download)
                 {
-                    Console.MarkupLine("[red]MediaInfo not found. Use --mediainfo or configure tools.mediainfo, or rerun with --yes to auto-download.[/]");
+                    Console.MarkupLine("[red]MediaInfo not found. Use --mediainfo or configure tools.mediainfo, or rerun with --assume-yes to auto-download.[/]");
                     return ExitCodes.ValidationError;
                 }
             }

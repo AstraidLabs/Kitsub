@@ -6,8 +6,8 @@ namespace Kitsub.Cli;
 /// <summary>Represents global command-line settings.</summary>
 public abstract class GlobalSettings : CommandSettings
 {
-    [CommandOption("--yes")]
-    /// <summary>Gets a value indicating whether prompts should be auto-accepted.</summary>
+    [CommandOption("--assume-yes")]
+    /// <summary>Gets a value indicating whether provisioning prompts should be auto-accepted (not destructive confirmations).</summary>
     public bool AssumeYes { get; set; }
 
     [CommandOption("--no-provision")]
