@@ -1,33 +1,43 @@
-# 🧰 Kitsub — Video & Subtitle buildtool
+# 🧰 Kitsub — Video & Subtitle Build Tool
 
+[![Build](https://github.com/AstraidLabs/Kitsub/actions/workflows/ci.yml/badge.svg)](https://github.com/AstraidLabs/Kitsub/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/AstraidLabs/Kitsub?label=license)](LICENSE.txt)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
-[![Type](https://img.shields.io/badge/Type-CLI-2F6F8F)](#-project-name--short-description)
+[![Type](https://img.shields.io/badge/Type-CLI-2F6F8F)](#-overview)
 
-## 🧰 Project name & short description
+🎬 Video & subtitle build tool
 
-**Kitsub** is a .NET CLI tool for subtitle-first video workflows. It lets you inspect media, mux or burn subtitles, extract tracks, convert subtitle formats, and manage fonts. When available, it integrates with external tools like FFmpeg, MKVToolNix, and MediaInfo.
+Kitsub is a .NET CLI tool that builds video outputs with burned-in or muxed subtitles.
+It assembles final media files through explicit commands and does not provide an interactive editor.
+Documentation is organized into stable, standalone guides and a docs/ hub for long-term reference.
 
-## 🏷 Badge
+## 🧱 Overview
 
-- License: MIT
+- Command-line tool for media processing tasks.
+- Video and subtitle processing, including muxing and burning.
+- Explicit commands for inspection, extraction, conversion, and release packaging.
+- External tooling via configurable paths.
 
-## ✨ Features
+## 🧩 Capabilities
 
-- Media inspection and MediaInfo JSON reporting.
-- Mux subtitles into MKV outputs.
-- Burn-in subtitles into video outputs.
-- Extract audio/video/subtitle tracks.
-- Subtitle conversion utilities.
-- Font attachment and font checks for MKV files.
-- Diagnostics and external tool management (status, fetch, clean, doctor).
+- Media inspection and diagnostics.
+- Subtitle muxing and burning.
+- Track extraction.
+- Subtitle conversion.
+- Font handling for MKV outputs.
+- External tool management and provisioning.
+
+Note: The available command set depends on the build and on external tool availability.
 
 ## 📦 Installation
 
 ### Requirements
 
 - .NET SDK 10.0
-- Optional: FFmpeg, MKVToolNix, and MediaInfo (Kitsub uses them if available)
+- External media tools (optional, can be provisioned by Kitsub when missing):
+  - FFmpeg
+  - MKVToolNix
+  - MediaInfo
 
 ### Build from source
 
@@ -48,53 +58,36 @@ Run from source:
 dotnet run --project src/Kitsub.Cli -- --help
 ```
 
-## 🖼 Output example
+Examples and command details: [Instructions.md](Instructions.md)
 
-Inspect a file (prints track metadata to the console):
+## 📚 Documentation
 
-```bash
-kitsub inspect "INPUT_FILE"
-```
-
-Generate a MediaInfo JSON report:
-
-```bash
-kitsub inspect mediainfo "INPUT_FILE"
-```
-
-Mux subtitles into MKV:
-
-```bash
-kitsub mux --in "INPUT_MKV" --sub "SUB_FILE" --lang eng --title "English" --default --out "OUTPUT_MKV"
-```
+- [Instructions.md](Instructions.md)
+- [docs/README.md](docs/README.md)
+- [TESTING.md](TESTING.md)
+- [docs/TESTING.md](docs/TESTING.md)
+- [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+- [LICENSE.txt](LICENSE.txt)
 
 ## 📁 Project structure
 
 ```
 .
 ├─ src/
-│  ├─ Kitsub.Cli/        # CLI app (commands and UI logic)
-│  ├─ Kitsub.Core/       # Domain logic
-│  └─ Kitsub.Tooling/    # External tool integration and management
-├─ docs/                 # Documentation
-├─ scripts/              # Helper scripts
-├─ tests/                # Tests
-├─ Instructions.md       # Command overview and examples
-├─ TESTING.md            # Testing notes
-└─ LICENSE.txt           # License
+├─ docs/
+├─ tests/
+├─ scripts/
 ```
 
-## 🤝 Contributing
+## 🛠️ Project status
 
-- Review the documentation in `docs/` and `Instructions.md`.
-- Please make changes in a separate branch and describe them in the commit.
-- Before submitting, make sure the project builds.
+Open-source project maintained by a single author.
 
 ## 📄 License
 
-Licensed under the MIT License. See [LICENSE.txt](LICENSE.txt).
+MIT License. See [LICENSE.txt](LICENSE.txt).
 
-## 👥 Authors / contact
+## 👥 Maintainer
 
-- AstraidLabs (maintainer)
+- AstraidLabs
 - Repository: https://github.com/AstraidLabs/Kitsub
