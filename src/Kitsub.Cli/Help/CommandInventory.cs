@@ -113,7 +113,7 @@ public static class CommandInventory
                 continue;
             }
 
-            if (token.StartsWith('-', StringComparison.Ordinal))
+            if (token.StartsWith("-", StringComparison.Ordinal))
             {
                 continue;
             }
@@ -159,7 +159,7 @@ public static class CommandInventory
                 continue;
             }
 
-            if (token.StartsWith('-', StringComparison.Ordinal))
+            if (token.StartsWith("-", StringComparison.Ordinal))
             {
                 continue;
             }
