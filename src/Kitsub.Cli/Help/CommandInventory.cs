@@ -51,7 +51,7 @@ public static class CommandInventory
 
         if (tokens.Count > 1)
         {
-            var candidate = string.Join(' ', tokens.ToArray());
+            var candidate = string.Join(" ", tokens.ToArray());
             if (All.Contains(candidate, StringComparer.OrdinalIgnoreCase))
             {
                 return candidate;
@@ -69,7 +69,7 @@ public static class CommandInventory
         var tokens = ExtractCommandTokens(args, includeUnknownSubcommand: true);
         if (tokens.Count > 0)
         {
-            return tokens.Count == 1 ? tokens[0] : string.Join(' ', tokens);
+            return tokens.Count == 1 ? tokens[0] : string.Join(" ", tokens);
         }
 
         var fallback = FindNextToken(args, 0);
@@ -131,7 +131,7 @@ public static class CommandInventory
 
                 if (!string.IsNullOrWhiteSpace(subcommand))
                 {
-                    var candidate = string.Join(' ', new[] { token, subcommand });
+                    var candidate = string.Join(" ", new[] { token, subcommand });
                     if (All.Contains(candidate, StringComparer.OrdinalIgnoreCase))
                     {
                         return new[] { token, subcommand };
