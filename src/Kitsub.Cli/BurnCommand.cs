@@ -46,6 +46,11 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
         /// <returns>A validation result indicating success or failure.</returns>
         public override ValidationResult Validate()
         {
+            if (string.IsNullOrWhiteSpace(InputFile))
+            {
+                return ValidationResult.Error("Missing required option: --in.");
+            }
+
             // Block: Validate the required input file before continuing.
             var inputValidation = ValidationHelpers.ValidateFileExists(InputFile, "Input file");
             if (!inputValidation.Successful)
@@ -66,13 +71,13 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
             if (string.IsNullOrWhiteSpace(OutputFile))
             {
                 // Block: Require an explicit output path for the burned video.
-                return ValidationResult.Error("Output file is required.");
+                return ValidationResult.Error("Missing required option: --out.");
             }
 
             if (string.IsNullOrWhiteSpace(SubtitleFile) && string.IsNullOrWhiteSpace(TrackSelector))
             {
                 // Block: Enforce that either a subtitle file or track selector is supplied.
-                return ValidationResult.Error("Provide either --sub or --track.");
+                return ValidationResult.Error("Missing required option: --sub or --track.");
             }
 
             if (!string.IsNullOrWhiteSpace(SubtitleFile) && !string.IsNullOrWhiteSpace(TrackSelector))
@@ -180,11 +185,11 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
             return Task.CompletedTask;
         }
 
-        if (!int.TryParse(settings.TrackSelector, out var subtitleIndex))
-        {
-            // Block: Reject non-numeric track selectors for dry-run extraction.
-            throw new ValidationException("Dry-run for --track requires a numeric index selector.");
-        }
+            if (!int.TryParse(settings.TrackSelector, out var subtitleIndex))
+            {
+                // Block: Reject non-numeric track selectors for dry-run extraction.
+                throw new ValidationException("Invalid value for --track: must be numeric when using --dry-run.");
+            }
 
         // Block: Render extraction and burn commands using a temporary subtitle output.
         var tempFile = Path.Combine(Path.GetTempPath(), $"kitsub_dryrun_{Guid.NewGuid():N}.ass");
@@ -215,7 +220,7 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
     {
         if (settings.Crf is < 0 or > 51)
         {
-            throw new ValidationException("CRF must be between 0 and 51.");
+            throw new ValidationException("Invalid value for --crf: must be between 0 and 51.");
         }
 
         if (!string.IsNullOrWhiteSpace(settings.FontsDir))

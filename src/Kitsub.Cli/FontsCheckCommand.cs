@@ -22,6 +22,17 @@ public sealed class FontsCheckCommand : CommandBase<FontsCheckCommand.Settings>
         /// <returns>A validation result indicating success or failure.</returns>
         public override ValidationResult Validate()
         {
+            if (string.IsNullOrWhiteSpace(InputMkv))
+            {
+                return ValidationResult.Error("Missing required option: --in.");
+            }
+
+            var extensionValidation = ValidationHelpers.ValidateFileExtension(InputMkv, ".mkv", "Input");
+            if (!extensionValidation.Successful)
+            {
+                return extensionValidation;
+            }
+
             // Block: Validate the required input MKV file before inspection.
             return ValidationHelpers.ValidateFileExists(InputMkv, "Input MKV");
         }

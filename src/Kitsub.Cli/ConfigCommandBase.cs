@@ -25,7 +25,7 @@ public abstract class ConfigCommandBase<TSettings> : AsyncCommand<TSettings> whe
         }
         catch (Exception ex)
         {
-            return CommandErrorHandler.Handle(ex, _console, verbose: false);
+            return CommandErrorHandler.Handle(ex, _console, verbose: false, context.GetCommandPath());
         }
     }
 

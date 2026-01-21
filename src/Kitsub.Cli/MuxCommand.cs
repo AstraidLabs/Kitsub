@@ -54,6 +54,17 @@ public sealed class MuxCommand : CommandBase<MuxCommand.Settings>
         /// <returns>A validation result indicating success or failure.</returns>
         public override ValidationResult Validate()
         {
+            if (string.IsNullOrWhiteSpace(InputMkv))
+            {
+                return ValidationResult.Error("Missing required option: --in.");
+            }
+
+            var extensionValidation = ValidationHelpers.ValidateFileExtension(InputMkv, ".mkv", "Input");
+            if (!extensionValidation.Successful)
+            {
+                return extensionValidation;
+            }
+
             // Block: Validate the required input MKV file before muxing.
             var inputValidation = ValidationHelpers.ValidateFileExists(InputMkv, "Input MKV");
             if (!inputValidation.Successful)
@@ -64,7 +75,7 @@ public sealed class MuxCommand : CommandBase<MuxCommand.Settings>
             if (Subtitles.Length == 0)
             {
                 // Block: Require at least one subtitle file to mux.
-                return ValidationResult.Error("At least one subtitle file is required.");
+                return ValidationResult.Error("Missing required option: --sub.");
             }
 
             foreach (var subtitle in Subtitles)
@@ -89,8 +100,17 @@ public sealed class MuxCommand : CommandBase<MuxCommand.Settings>
                 return ValidationResult.Error("Use either --forced or --no-forced, not both.");
             }
 
-        return ValidationResult.Success();
-    }
+            if (!string.IsNullOrWhiteSpace(Output))
+            {
+                var outputValidation = ValidationHelpers.ValidateFileExtension(Output, ".mkv", "Output");
+                if (!outputValidation.Successful)
+                {
+                    return outputValidation;
+                }
+            }
+
+            return ValidationResult.Success();
+        }
     }
 
     /// <summary>Initializes the command with the console used for output.</summary>
