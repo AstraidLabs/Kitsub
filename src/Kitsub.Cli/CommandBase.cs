@@ -57,7 +57,7 @@ public abstract class CommandBase<TSettings> : AsyncCommand<TSettings> where TSe
         catch (Exception ex)
         {
             // Block: Handle failures using standardized error handling and exit codes.
-            return CommandErrorHandler.Handle(ex, _console, settings.Verbose);
+            return CommandErrorHandler.Handle(ex, _console, settings.Verbose, context.GetCommandPath());
         }
     }
 

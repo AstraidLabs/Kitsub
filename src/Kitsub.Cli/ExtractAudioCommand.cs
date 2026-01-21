@@ -30,6 +30,11 @@ public sealed class ExtractAudioCommand : CommandBase<ExtractAudioCommand.Settin
         /// <returns>A validation result indicating success or failure.</returns>
         public override ValidationResult Validate()
         {
+            if (string.IsNullOrWhiteSpace(InputFile))
+            {
+                return ValidationResult.Error("Missing required option: --in.");
+            }
+
             // Block: Validate the required input file before extraction.
             var inputValidation = ValidationHelpers.ValidateFileExists(InputFile, "Input file");
             if (!inputValidation.Successful)
@@ -40,13 +45,13 @@ public sealed class ExtractAudioCommand : CommandBase<ExtractAudioCommand.Settin
             if (string.IsNullOrWhiteSpace(TrackSelector))
             {
                 // Block: Require a track selector to identify the audio stream.
-                return ValidationResult.Error("Track selector is required.");
+                return ValidationResult.Error("Missing required option: --track.");
             }
 
             if (string.IsNullOrWhiteSpace(OutputFile))
             {
                 // Block: Require a destination file for extracted audio.
-                return ValidationResult.Error("Output file is required.");
+                return ValidationResult.Error("Missing required option: --out.");
             }
 
             return ValidationResult.Success();
@@ -75,7 +80,7 @@ public sealed class ExtractAudioCommand : CommandBase<ExtractAudioCommand.Settin
             if (!int.TryParse(settings.TrackSelector, out var index))
             {
                 // Block: Reject non-numeric track selectors for dry-run rendering.
-                throw new ValidationException("Dry-run for --track requires a numeric index selector.");
+                throw new ValidationException("Invalid value for --track: must be numeric when using --dry-run.");
             }
 
             // Block: Render the extraction command without executing it.

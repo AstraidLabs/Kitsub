@@ -36,14 +36,14 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
             // Block: Validate the inspection target and any required file paths.
             if (string.IsNullOrWhiteSpace(Target))
             {
-                return ValidationResult.Error("Inspection target is required.");
+                return ValidationResult.Error("Missing required argument: <TARGET>.");
             }
 
             if (Target.Equals("mediainfo", StringComparison.OrdinalIgnoreCase))
             {
                 if (string.IsNullOrWhiteSpace(FilePath))
                 {
-                    return ValidationResult.Error("MediaInfo inspection requires a file path.");
+                    return ValidationResult.Error("Missing required argument: <FILE> for mediainfo mode.");
                 }
 
                 return ValidationHelpers.ValidateFileExists(FilePath, "Input file");

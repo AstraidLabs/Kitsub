@@ -10,12 +10,12 @@ public static class CommandErrorHandler
 {
     private const int TailLineCount = 12;
 
-    public static int Handle(Exception ex, IAnsiConsole console, bool verbose)
+    public static int Handle(Exception ex, IAnsiConsole console, bool verbose, string? commandPath)
     {
         switch (ex)
         {
             case ValidationException or ConfigurationException:
-                console.MarkupLine($"[red]{Markup.Escape(ex.Message)}[/]");
+                CliErrorRenderer.RenderUsageError(console, ex.Message, commandPath, includeCommandTip: !string.IsNullOrWhiteSpace(commandPath));
                 return ExitCodes.ValidationError;
             case IntegrityException:
                 console.MarkupLine($"[red]{Markup.Escape(ex.Message)}[/]");

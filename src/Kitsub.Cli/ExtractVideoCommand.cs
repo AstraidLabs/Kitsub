@@ -26,6 +26,11 @@ public sealed class ExtractVideoCommand : CommandBase<ExtractVideoCommand.Settin
         /// <returns>A validation result indicating success or failure.</returns>
         public override ValidationResult Validate()
         {
+            if (string.IsNullOrWhiteSpace(InputFile))
+            {
+                return ValidationResult.Error("Missing required option: --in.");
+            }
+
             // Block: Validate the required input file before extraction.
             var inputValidation = ValidationHelpers.ValidateFileExists(InputFile, "Input file");
             if (!inputValidation.Successful)
@@ -36,7 +41,7 @@ public sealed class ExtractVideoCommand : CommandBase<ExtractVideoCommand.Settin
             if (string.IsNullOrWhiteSpace(OutputFile))
             {
                 // Block: Require a destination file for extracted video.
-                return ValidationResult.Error("Output file is required.");
+                return ValidationResult.Error("Missing required option: --out.");
             }
 
             return ValidationResult.Success();

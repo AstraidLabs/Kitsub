@@ -75,6 +75,7 @@ public static class Program
         app.Configure(config =>
         {
             config.SetInterceptor(new StartupPromptInterceptor(startupCoordinator, effectiveConfig!, console, helpOnly));
+            config.SetExceptionHandler(ex => CliAppExceptionHandler.Handle(ex, console, args));
             // Block: Register top-level commands and command groups for the CLI.
             config.SetApplicationName("kitsub");
             config.AddCommand<InspectCommand>("inspect").WithDescription("Inspect media file.");

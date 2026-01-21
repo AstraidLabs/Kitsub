@@ -91,12 +91,39 @@ public sealed class ReleaseMuxSettings : ToolSettings
 
         if (string.IsNullOrWhiteSpace(InputMkv))
         {
-            return ValidationResult.Error("Input MKV is required. Use --spec for multi-sub mode.");
+            return ValidationResult.Error("Missing required option: --in (use --spec for multi-sub mode).");
+        }
+
+        var extensionValidation = ValidationHelpers.ValidateFileExtension(InputMkv, ".mkv", "Input");
+        if (!extensionValidation.Successful)
+        {
+            return extensionValidation;
+        }
+
+        var inputValidation = ValidationHelpers.ValidateFileExists(InputMkv, "Input MKV");
+        if (!inputValidation.Successful)
+        {
+            return inputValidation;
         }
 
         if (string.IsNullOrWhiteSpace(SubtitlePath))
         {
-            return ValidationResult.Error("Subtitle file is required. Use --spec for multi-sub mode.");
+            return ValidationResult.Error("Missing required option: --sub (use --spec for multi-sub mode).");
+        }
+
+        var subtitleValidation = ValidationHelpers.ValidateFileExists(SubtitlePath, "Subtitle file");
+        if (!subtitleValidation.Successful)
+        {
+            return subtitleValidation;
+        }
+
+        if (!string.IsNullOrWhiteSpace(Output))
+        {
+            var outputValidation = ValidationHelpers.ValidateFileExtension(Output, ".mkv", "Output");
+            if (!outputValidation.Successful)
+            {
+                return outputValidation;
+            }
         }
 
         return ValidationResult.Success();

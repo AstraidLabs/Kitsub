@@ -30,11 +30,27 @@ public sealed class FontsAttachCommand : CommandBase<FontsAttachCommand.Settings
         /// <returns>A validation result indicating success or failure.</returns>
         public override ValidationResult Validate()
         {
+            if (string.IsNullOrWhiteSpace(InputMkv))
+            {
+                return ValidationResult.Error("Missing required option: --in.");
+            }
+
+            var extensionValidation = ValidationHelpers.ValidateFileExtension(InputMkv, ".mkv", "Input");
+            if (!extensionValidation.Successful)
+            {
+                return extensionValidation;
+            }
+
             // Block: Validate the required input MKV file before proceeding.
             var inputValidation = ValidationHelpers.ValidateFileExists(InputMkv, "Input MKV");
             if (!inputValidation.Successful)
             {
                 return inputValidation;
+            }
+
+            if (string.IsNullOrWhiteSpace(FontsDir))
+            {
+                return ValidationResult.Error("Missing required option: --dir.");
             }
 
             // Block: Validate the fonts directory and ensure it exists.
@@ -48,6 +64,15 @@ public sealed class FontsAttachCommand : CommandBase<FontsAttachCommand.Settings
             {
                 // Block: Fail validation when no font files are present to attach.
                 return ValidationResult.Error("No font files found in the directory.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(Output))
+            {
+                var outputValidation = ValidationHelpers.ValidateFileExtension(Output, ".mkv", "Output");
+                if (!outputValidation.Successful)
+                {
+                    return outputValidation;
+                }
             }
 
             return ValidationResult.Success();

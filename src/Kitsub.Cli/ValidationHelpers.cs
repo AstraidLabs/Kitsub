@@ -25,6 +25,25 @@ public static class ValidationHelpers
             : ValidationResult.Error($"{label} not found: {path}");
     }
 
+    /// <summary>Validates that a file path uses a required extension.</summary>
+    /// <param name="path">The file path to validate.</param>
+    /// <param name="extension">The expected file extension.</param>
+    /// <param name="label">The label used in validation error messages.</param>
+    /// <returns>A validation result indicating success or failure.</returns>
+    public static ValidationResult ValidateFileExtension(string? path, string extension, string label)
+    {
+        // Block: Ensure a non-empty file path has been supplied.
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return ValidationResult.Error($"{label} is required.");
+        }
+
+        // Block: Fail when the file extension does not match expectations.
+        return Path.GetExtension(path).Equals(extension, StringComparison.OrdinalIgnoreCase)
+            ? ValidationResult.Success()
+            : ValidationResult.Error($"{label} must be a {extension} file.");
+    }
+
     /// <summary>Validates that a directory path is provided and points to an existing directory.</summary>
     /// <param name="path">The directory path to validate.</param>
     /// <param name="label">The label used in validation error messages.</param>
