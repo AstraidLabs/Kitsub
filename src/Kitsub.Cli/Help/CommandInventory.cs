@@ -1,4 +1,6 @@
 // Summary: Provides a registry of command paths and suggestion helpers.
+using System;
+
 namespace Kitsub.Cli;
 
 /// <summary>Provides the full inventory of known command paths.</summary>
