@@ -26,13 +26,17 @@ public sealed class FontsAttachCommand : CommandBase<FontsAttachCommand.Settings
         /// <summary>Gets the optional output MKV file path.</summary>
         public string? Output { get; init; }
 
+        [CommandOption("--force")]
+        /// <summary>Gets a value indicating whether existing output files should be overwritten.</summary>
+        public bool Force { get; init; }
+
         /// <summary>Validates the provided settings for font attachment.</summary>
         /// <returns>A validation result indicating success or failure.</returns>
         public override ValidationResult Validate()
         {
             if (string.IsNullOrWhiteSpace(InputMkv))
             {
-                return ValidationResult.Error("Missing required option: --in.");
+                return ValidationResult.Error("Missing required option: --in. Fix: provide --in <file>.");
             }
 
             var extensionValidation = ValidationHelpers.ValidateFileExtension(InputMkv, ".mkv", "Input");
@@ -50,7 +54,7 @@ public sealed class FontsAttachCommand : CommandBase<FontsAttachCommand.Settings
 
             if (string.IsNullOrWhiteSpace(FontsDir))
             {
-                return ValidationResult.Error("Missing required option: --dir.");
+                return ValidationResult.Error("Missing required option: --dir. Fix: provide --dir <folder>.");
             }
 
             // Block: Validate the fonts directory and ensure it exists.
@@ -63,7 +67,7 @@ public sealed class FontsAttachCommand : CommandBase<FontsAttachCommand.Settings
             if (MkvmergeMuxer.EnumerateFonts(FontsDir).Count == 0)
             {
                 // Block: Fail validation when no font files are present to attach.
-                return ValidationResult.Error("No font files found in the directory.");
+                return ValidationResult.Error("No font files found in the directory. Fix: add supported font files or choose another folder.");
             }
 
             if (!string.IsNullOrWhiteSpace(Output))
@@ -102,6 +106,14 @@ public sealed class FontsAttachCommand : CommandBase<FontsAttachCommand.Settings
             var name = Path.GetFileNameWithoutExtension(settings.InputMkv);
             output = Path.Combine(Path.GetDirectoryName(settings.InputMkv) ?? string.Empty, $"{name}.fonts.mkv");
         }
+
+        ValidationHelpers.EnsureOutputPath(
+            output,
+            "Output file",
+            allowCreateDirectory: true,
+            allowOverwrite: settings.Force,
+            inputPath: settings.InputMkv,
+            createDirectory: !settings.DryRun);
 
         // Block: Execute font attachment using tooling services.
         using var tooling = ToolingFactory.CreateTooling(settings, Console, _toolResolver);

@@ -22,13 +22,17 @@ public sealed class ExtractVideoCommand : CommandBase<ExtractVideoCommand.Settin
         /// <summary>Gets the output video file path.</summary>
         public string OutputFile { get; init; } = string.Empty;
 
+        [CommandOption("--force")]
+        /// <summary>Gets a value indicating whether existing output files should be overwritten.</summary>
+        public bool Force { get; init; }
+
         /// <summary>Validates the provided settings for video extraction.</summary>
         /// <returns>A validation result indicating success or failure.</returns>
         public override ValidationResult Validate()
         {
             if (string.IsNullOrWhiteSpace(InputFile))
             {
-                return ValidationResult.Error("Missing required option: --in.");
+                return ValidationResult.Error("Missing required option: --in. Fix: provide --in <file>.");
             }
 
             // Block: Validate the required input file before extraction.
@@ -41,7 +45,7 @@ public sealed class ExtractVideoCommand : CommandBase<ExtractVideoCommand.Settin
             if (string.IsNullOrWhiteSpace(OutputFile))
             {
                 // Block: Require a destination file for extracted video.
-                return ValidationResult.Error("Missing required option: --out.");
+                return ValidationResult.Error("Missing required option: --out. Fix: provide --out <file>.");
             }
 
             return ValidationResult.Success();
@@ -65,6 +69,14 @@ public sealed class ExtractVideoCommand : CommandBase<ExtractVideoCommand.Settin
     {
         // Block: Create tooling services scoped to this command execution.
         using var tooling = ToolingFactory.CreateTooling(settings, Console, _toolResolver);
+        ValidationHelpers.EnsureOutputPath(
+            settings.OutputFile,
+            "Output file",
+            allowCreateDirectory: true,
+            allowOverwrite: settings.Force,
+            inputPath: settings.InputFile,
+            createDirectory: !settings.DryRun);
+
         if (settings.DryRun)
         {
             // Block: Render the extraction command without executing it.

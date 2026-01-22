@@ -234,11 +234,11 @@ public sealed class FfmpegClient
         if (inputExtension == ".ass" && outputExtension == ".srt")
         {
             // Block: Reject ASS to SRT conversion to avoid quality loss.
-            throw new InvalidOperationException("ASS to SRT conversion is not supported reliably. Use another tool or convert to ASS first.");
+            throw new InvalidOperationException("ASS to SRT conversion is not supported reliably. Fix: keep subtitles in ASS or export from your editor.");
         }
 
         // Block: Reject any other unsupported conversion combinations.
-        throw new InvalidOperationException($"Unsupported subtitle conversion: {inputExtension} -> {outputExtension}.");
+        throw new InvalidOperationException($"Unsupported subtitle conversion: {inputExtension} -> {outputExtension}. Fix: use .srt -> .ass.");
     }
 
     /// <summary>Builds the ffmpeg command to extract an audio stream.</summary>

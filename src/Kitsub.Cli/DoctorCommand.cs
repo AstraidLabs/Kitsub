@@ -112,7 +112,7 @@ public sealed class DoctorCommand : CommandBase<DoctorCommand.Settings>
         }
         else
         {
-            Console.MarkupLine($"[red]Config[/]: Invalid ({Markup.Escape(status.Path)})");
+            Console.MarkupLine($"[red]Config[/]: Invalid ({Markup.Escape(status.Path)}). Fix: correct the config file or run `kitsub config init`.");
             if (!string.IsNullOrWhiteSpace(status.Error))
             {
                 Console.MarkupLine($"[grey]{Markup.Escape(status.Error)}[/]");

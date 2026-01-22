@@ -45,7 +45,7 @@ public sealed class ToolsFetchCommand : CommandBase<ToolsFetchCommand.Settings>
 
         if (result is null)
         {
-            Console.MarkupLine("[red]Failed to provision tools. Check logs for details.[/]");
+            Console.MarkupLine("[red]Failed to provision tools. Fix: check logs and verify network access.[/]");
             return ExitCodes.ProvisioningFailure;
         }
 

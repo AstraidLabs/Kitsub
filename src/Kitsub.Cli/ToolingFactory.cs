@@ -38,7 +38,31 @@ public static class ToolingFactory
         if (!(settings.NoLog ?? false) && string.IsNullOrWhiteSpace(settings.LogFile))
         {
             // Block: Enforce a log file path when logging is enabled.
-            throw new ValidationException("Log file path is required unless --no-log is set.");
+            throw new ValidationException("Log file path is required unless --no-log is set. Fix: provide --log-file or use --no-log.");
+        }
+    }
+
+    /// <summary>Validates any explicit tool path overrides supplied via CLI settings.</summary>
+    /// <param name="settings">The settings containing tool path overrides.</param>
+    public static void ValidateToolOverrides(ToolSettings settings)
+    {
+        ValidateToolOverride(settings.FfmpegPath, "ffmpeg");
+        ValidateToolOverride(settings.FfprobePath, "ffprobe");
+        ValidateToolOverride(settings.MkvmergePath, "mkvmerge");
+        ValidateToolOverride(settings.MkvpropeditPath, "mkvpropedit");
+        ValidateToolOverride(settings.MediainfoPath, "mediainfo");
+    }
+
+    private static void ValidateToolOverride(string? path, string toolName)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        if (!File.Exists(path))
+        {
+            throw new ValidationException($"Configured path for {toolName} does not exist: {path}. Fix: provide a valid path or remove the override.");
         }
     }
 

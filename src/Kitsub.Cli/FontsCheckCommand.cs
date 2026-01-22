@@ -24,7 +24,7 @@ public sealed class FontsCheckCommand : CommandBase<FontsCheckCommand.Settings>
         {
             if (string.IsNullOrWhiteSpace(InputMkv))
             {
-                return ValidationResult.Error("Missing required option: --in.");
+                return ValidationResult.Error("Missing required option: --in. Fix: provide --in <file>.");
             }
 
             var extensionValidation = ValidationHelpers.ValidateFileExtension(InputMkv, ".mkv", "Input");
@@ -83,7 +83,7 @@ public sealed class FontsCheckCommand : CommandBase<FontsCheckCommand.Settings>
         if (!hasFonts && hasAss)
         {
             // Block: Warn when ASS subtitles are present without embedded fonts.
-            Console.MarkupLine("[red]Warning:[/] ASS subtitles detected without embedded fonts.");
+            Console.MarkupLine("[red]Warning:[/] ASS subtitles detected without embedded fonts. Fix: attach fonts or provide an external fonts directory.");
         }
 
         return 0;

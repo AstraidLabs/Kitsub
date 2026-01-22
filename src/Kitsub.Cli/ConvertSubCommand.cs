@@ -22,13 +22,17 @@ public sealed class ConvertSubCommand : CommandBase<ConvertSubCommand.Settings>
         /// <summary>Gets the output subtitle file path.</summary>
         public string OutputFile { get; init; } = string.Empty;
 
+        [CommandOption("--force")]
+        /// <summary>Gets a value indicating whether existing output files should be overwritten.</summary>
+        public bool Force { get; init; }
+
         /// <summary>Validates the provided settings for subtitle conversion.</summary>
         /// <returns>A validation result indicating success or failure.</returns>
         public override ValidationResult Validate()
         {
             if (string.IsNullOrWhiteSpace(InputFile))
             {
-                return ValidationResult.Error("Missing required option: --in.");
+                return ValidationResult.Error("Missing required option: --in. Fix: provide --in <file>.");
             }
 
             // Block: Validate the required input file before conversion.
@@ -41,7 +45,19 @@ public sealed class ConvertSubCommand : CommandBase<ConvertSubCommand.Settings>
             if (string.IsNullOrWhiteSpace(OutputFile))
             {
                 // Block: Require a target output file path for conversion results.
-                return ValidationResult.Error("Missing required option: --out.");
+                return ValidationResult.Error("Missing required option: --out. Fix: provide --out <file>.");
+            }
+
+            var subtitleValidation = ValidationHelpers.ValidateSubtitleFile(InputFile, "Input subtitle file");
+            if (!subtitleValidation.Successful)
+            {
+                return subtitleValidation;
+            }
+
+            var conversionValidation = ValidationHelpers.ValidateSubtitleConversion(InputFile, OutputFile);
+            if (!conversionValidation.Successful)
+            {
+                return conversionValidation;
             }
 
             return ValidationResult.Success();
@@ -65,6 +81,14 @@ public sealed class ConvertSubCommand : CommandBase<ConvertSubCommand.Settings>
     {
         // Block: Create tooling services scoped to this command execution.
         using var tooling = ToolingFactory.CreateTooling(settings, Console, _toolResolver);
+        ValidationHelpers.EnsureOutputPath(
+            settings.OutputFile,
+            "Output file",
+            allowCreateDirectory: true,
+            allowOverwrite: settings.Force,
+            inputPath: settings.InputFile,
+            createDirectory: !settings.DryRun);
+
         if (settings.DryRun)
         {
             // Block: Render the conversion command without executing it.
