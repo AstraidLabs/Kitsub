@@ -72,11 +72,11 @@ public sealed class AppConfigLoader
         {
             var json = File.ReadAllText(path);
             var config = JsonSerializer.Deserialize<AppConfig>(json, JsonOptions)
-                ?? throw new ConfigurationException($"Configuration file is invalid: {path}");
+                ?? throw new ConfigurationException($"Configuration file is invalid: {path}. Fix: correct the file or restore from backup.");
 
             if (config.ConfigVersion != 1)
             {
-                throw new ConfigurationException($"Unsupported configVersion {config.ConfigVersion} in {path}.");
+                throw new ConfigurationException($"Unsupported configVersion {config.ConfigVersion} in {path}. Fix: upgrade the config file to version 1.");
             }
 
             return config;
@@ -84,7 +84,7 @@ public sealed class AppConfigLoader
         catch (JsonException ex)
         {
             var suffix = isGlobal
-                ? $" Restore from {path}.bak or correct the file."
+                ? $" Fix: restore from {path}.bak or correct the file."
                 : string.Empty;
             throw new ConfigurationException($"Configuration file is invalid JSON: {path}.{suffix}", ex);
         }
@@ -128,7 +128,7 @@ public sealed class AppConfigLoader
         }
         catch (JsonException ex)
         {
-            throw new ConfigurationException($"Tool override file is invalid JSON: {path}", ex);
+            throw new ConfigurationException($"Tool override file is invalid JSON: {path}. Fix: correct the JSON or delete the override file.", ex);
         }
     }
 
@@ -189,12 +189,12 @@ public sealed class AppConfigLoader
     {
         if (config.Defaults.Burn.Crf is < 0 or > 51)
         {
-            throw new ConfigurationException("Burn CRF must be between 0 and 51.");
+            throw new ConfigurationException("Burn CRF must be between 0 and 51. Fix: update defaults.burn.crf to a value between 0 and 51.");
         }
 
         if (config.Tools.CheckIntervalHours is < 1)
         {
-            throw new ConfigurationException("Tools checkIntervalHours must be at least 1.");
+            throw new ConfigurationException("Tools checkIntervalHours must be at least 1. Fix: set tools.checkIntervalHours to 1 or higher.");
         }
 
         if (!string.IsNullOrWhiteSpace(config.Logging.LogLevel))
@@ -230,7 +230,7 @@ public sealed class AppConfigLoader
 
         if (!File.Exists(path))
         {
-            throw new ConfigurationException($"Configured path for {toolName} does not exist: {path}");
+            throw new ConfigurationException($"Configured path for {toolName} does not exist: {path}. Fix: update or remove the tool path.");
         }
     }
 
@@ -245,7 +245,7 @@ public sealed class AppConfigLoader
         }
         catch (Exception ex)
         {
-            throw new ConfigurationException($"Tools cache directory is not writable: {path}", ex);
+            throw new ConfigurationException($"Tools cache directory is not writable: {path}. Fix: choose a writable tools cache directory.", ex);
         }
     }
 

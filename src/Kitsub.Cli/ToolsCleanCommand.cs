@@ -36,7 +36,7 @@ public sealed class ToolsCleanCommand : CommandBase<ToolsCleanCommand.Settings>
     {
         if (!settings.Confirm)
         {
-            Console.MarkupLine("[red]Refusing to delete cache without --yes.[/]");
+            Console.MarkupLine("[red]Refusing to delete cache without --yes. Fix: re-run with --yes to confirm.[/]");
             return Task.FromResult(1);
         }
 

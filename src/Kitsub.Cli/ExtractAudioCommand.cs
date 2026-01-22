@@ -1,4 +1,5 @@
 // Summary: Implements the CLI command that extracts audio tracks from media files.
+using Kitsub.Core;
 using Kitsub.Tooling;
 using Kitsub.Tooling.Provisioning;
 using Spectre.Console;
@@ -26,13 +27,17 @@ public sealed class ExtractAudioCommand : CommandBase<ExtractAudioCommand.Settin
         /// <summary>Gets the output audio file path.</summary>
         public string OutputFile { get; init; } = string.Empty;
 
+        [CommandOption("--force")]
+        /// <summary>Gets a value indicating whether existing output files should be overwritten.</summary>
+        public bool Force { get; init; }
+
         /// <summary>Validates the provided settings for audio extraction.</summary>
         /// <returns>A validation result indicating success or failure.</returns>
         public override ValidationResult Validate()
         {
             if (string.IsNullOrWhiteSpace(InputFile))
             {
-                return ValidationResult.Error("Missing required option: --in.");
+                return ValidationResult.Error("Missing required option: --in. Fix: provide --in <file>.");
             }
 
             // Block: Validate the required input file before extraction.
@@ -45,13 +50,19 @@ public sealed class ExtractAudioCommand : CommandBase<ExtractAudioCommand.Settin
             if (string.IsNullOrWhiteSpace(TrackSelector))
             {
                 // Block: Require a track selector to identify the audio stream.
-                return ValidationResult.Error("Missing required option: --track.");
+                return ValidationResult.Error("Missing required option: --track. Fix: provide --track <selector>.");
             }
 
             if (string.IsNullOrWhiteSpace(OutputFile))
             {
                 // Block: Require a destination file for extracted audio.
-                return ValidationResult.Error("Missing required option: --out.");
+                return ValidationResult.Error("Missing required option: --out. Fix: provide --out <file>.");
+            }
+
+            var selectorValidation = ValidationHelpers.ValidateTrackSelectorSyntax(TrackSelector);
+            if (!selectorValidation.Successful)
+            {
+                return selectorValidation;
             }
 
             return ValidationResult.Success();
@@ -75,12 +86,20 @@ public sealed class ExtractAudioCommand : CommandBase<ExtractAudioCommand.Settin
     {
         // Block: Create tooling services scoped to this command execution.
         using var tooling = ToolingFactory.CreateTooling(settings, Console, _toolResolver);
+        ValidationHelpers.EnsureOutputPath(
+            settings.OutputFile,
+            "Output file",
+            allowCreateDirectory: true,
+            allowOverwrite: settings.Force,
+            inputPath: settings.InputFile,
+            createDirectory: !settings.DryRun);
+
         if (settings.DryRun)
         {
             if (!int.TryParse(settings.TrackSelector, out var index))
             {
                 // Block: Reject non-numeric track selectors for dry-run rendering.
-                throw new ValidationException("Invalid value for --track: must be numeric when using --dry-run.");
+                throw new ValidationException("Invalid value for --track: must be numeric when using --dry-run. Fix: use a numeric track index.");
             }
 
             // Block: Render the extraction command without executing it.
@@ -89,12 +108,32 @@ public sealed class ExtractAudioCommand : CommandBase<ExtractAudioCommand.Settin
             return 0;
         }
 
-        // Block: Execute the audio extraction and report completion.
-        await tooling.Service.ExtractAudioAsync(
-            settings.InputFile,
+        var info = await tooling.GetRequiredService<FfprobeClient>()
+            .ProbeAsync(settings.InputFile, cancellationToken).ConfigureAwait(false);
+        var selection = ValidationHelpers.ResolveTrackSelection(
+            info,
+            TrackType.Audio,
             settings.TrackSelector,
-            settings.OutputFile,
-            cancellationToken).ConfigureAwait(false);
+            rejectBitmapSubtitles: false,
+            settings.InputFile);
+        if (!string.IsNullOrWhiteSpace(selection.Warning))
+        {
+            Console.MarkupLine($"[yellow]{Markup.Escape(selection.Warning)}[/]");
+        }
+
+        // Block: Execute the audio extraction and report completion.
+        try
+        {
+            await tooling.Service.ExtractAudioAsync(
+                settings.InputFile,
+                settings.TrackSelector,
+                settings.OutputFile,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new ValidationException($"Failed to resolve audio track. Fix: run `kitsub inspect {settings.InputFile}` to list tracks. ({ex.Message})", ex);
+        }
         Console.MarkupLine($"[green]Extracted audio to[/] {Markup.Escape(settings.OutputFile)}");
         return 0;
     }

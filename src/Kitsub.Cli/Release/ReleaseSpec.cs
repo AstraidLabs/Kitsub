@@ -43,11 +43,11 @@ public sealed class ReleaseSpec
         {
             var json = File.ReadAllText(path);
             return JsonSerializer.Deserialize<ReleaseSpec>(json, JsonOptions)
-                ?? throw new ValidationException($"Release spec is invalid: {path}");
+                ?? throw new ValidationException($"Release spec is invalid: {path}. Fix: ensure the JSON matches the release spec schema.");
         }
         catch (JsonException ex)
         {
-            throw new ValidationException($"Release spec is invalid JSON: {path}", ex);
+            throw new ValidationException($"Release spec is invalid JSON: {path}. Fix: correct the JSON syntax.", ex);
         }
     }
 
@@ -81,6 +81,70 @@ public sealed class ReleaseSpec
     private static string ResolvePath(string path, string baseDir)
     {
         return Path.GetFullPath(path, baseDir);
+    }
+
+    public ReleaseSpec Validate(string specPath)
+    {
+        if (string.IsNullOrWhiteSpace(Input))
+        {
+            throw new ValidationException($"Release spec is missing input. Fix: add \"input\" to {specPath}.");
+        }
+
+        if (!File.Exists(Input))
+        {
+            throw new ValidationException($"Input MKV not found: {Input}. Fix: update the input path in {specPath}.");
+        }
+
+        if (Subtitles is null || Subtitles.Count == 0)
+        {
+            throw new ValidationException($"Release spec must contain at least one subtitle. Fix: add subtitles to {specPath}.");
+        }
+
+        var defaultCount = Subtitles.Count(sub => sub.Default == true);
+        if (defaultCount > 1)
+        {
+            throw new ValidationException($"Release spec has multiple default subtitles. Fix: mark only one subtitle as default in {specPath}.");
+        }
+
+        var pathSet = new HashSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        foreach (var subtitle in Subtitles)
+        {
+            if (string.IsNullOrWhiteSpace(subtitle.Path))
+            {
+                throw new ValidationException($"Release spec subtitle path is required. Fix: set \"path\" for each subtitle in {specPath}.");
+            }
+
+            var fullPath = Path.GetFullPath(subtitle.Path);
+            if (!pathSet.Add(fullPath))
+            {
+                throw new ValidationException($"Release spec contains duplicate subtitle path: {fullPath}. Fix: remove duplicates in {specPath}.");
+            }
+
+            if (!File.Exists(fullPath))
+            {
+                throw new ValidationException($"Subtitle file not found: {fullPath}. Fix: update the path in {specPath}.");
+            }
+
+            var subtitleFormatValidation = ValidationHelpers.ValidateSubtitleFile(fullPath, "Subtitle file");
+            if (!subtitleFormatValidation.Successful)
+            {
+                throw new ValidationException(subtitleFormatValidation.Message ?? $"Subtitle file is invalid: {fullPath}. Fix: re-export a valid subtitle file.");
+            }
+
+            var langValidation = ValidationHelpers.ValidateLanguageTag(subtitle.Lang, "Subtitle language");
+            if (!langValidation.Successful)
+            {
+                throw new ValidationException(langValidation.Message ?? $"Subtitle language is invalid. Fix: update the language tag in {specPath}.");
+            }
+
+            var titleValidation = ValidationHelpers.ValidateTitle(subtitle.Title, "Subtitle title");
+            if (!titleValidation.Successful)
+            {
+                throw new ValidationException(titleValidation.Message ?? $"Subtitle title is invalid. Fix: update the title in {specPath}.");
+            }
+        }
+
+        return this;
     }
 }
 
