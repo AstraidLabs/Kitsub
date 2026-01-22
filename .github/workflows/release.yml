@@ -4,36 +4,73 @@ on:
   push:
     tags:
       - "v*.*.*"
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
 
 jobs:
-  release:
-    runs-on: windows-2022
+  publish:
+    name: Publish (${{ matrix.rid }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+            archive: zip
+          - os: ubuntu-latest
+            rid: linux-x64
+            archive: tar.gz
+          - os: macos-latest
+            rid: osx-x64
+            archive: tar.gz
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
           cache: true
+
       - name: Restore
         run: dotnet restore Kitsub.sln
-      - name: Fetch tools
-        run: pwsh -File scripts/fetch-tools.ps1
+
       - name: Publish
-        run: dotnet publish src/Kitsub.Cli/Kitsub.csproj -c Release -r win-x64 --no-restore -o artifacts\kitsub-${{ github.ref_name }}-win-x64
+        shell: pwsh
+        run: |
+          $outDir = "artifacts/kitsub-$env:GITHUB_REF_NAME-${{ matrix.rid }}"
+          dotnet publish src/Kitsub.Cli/Kitsub.csproj -c Release -r ${{ matrix.rid }} --no-restore -o $outDir
+
       - name: Archive
         shell: pwsh
-        run: Compress-Archive -Path artifacts\kitsub-${{ github.ref_name }}-win-x64\* -DestinationPath artifacts\kitsub-${{ github.ref_name }}-win-x64.zip
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: kitsub-${{ github.ref_name }}-win-x64
-          path: artifacts\kitsub-${{ github.ref_name }}-win-x64.zip
-      - name: Create release
+        run: |
+          $outDir = "artifacts/kitsub-$env:GITHUB_REF_NAME-${{ matrix.rid }}"
+          $archive = "artifacts/kitsub-$env:GITHUB_REF_NAME-${{ matrix.rid }}.${{ matrix.archive }}"
+          if ("${{ matrix.archive }}" -eq "zip") {
+            Compress-Archive -Path "$outDir/*" -DestinationPath $archive
+          } else {
+            tar -czf $archive -C $outDir .
+          }
+
+      - name: Generate checksum
+        shell: pwsh
+        run: |
+          $archive = "artifacts/kitsub-$env:GITHUB_REF_NAME-${{ matrix.rid }}.${{ matrix.archive }}"
+          $hash = (Get-FileHash -Algorithm SHA256 $archive).Hash.ToLowerInvariant()
+          "${hash}  $(Split-Path -Leaf $archive)" | Out-File -FilePath "${archive}.sha256" -Encoding ascii
+
+      - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts\kitsub-${{ github.ref_name }}-win-x64.zip
+          files: |
+            artifacts/kitsub-${{ github.ref_name }}-${{ matrix.rid }}.${{ matrix.archive }}
+            artifacts/kitsub-${{ github.ref_name }}-${{ matrix.rid }}.${{ matrix.archive }}.sha256
+          generate_release_notes: true

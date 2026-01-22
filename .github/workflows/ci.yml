@@ -5,23 +5,35 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build:
-    runs-on: windows-2022
+  build-test:
+    name: Build and test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
           cache: true
+
       - name: Restore
         run: dotnet restore Kitsub.sln
+
       - name: Build
         run: dotnet build Kitsub.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test Kitsub.sln -c Release --no-build
