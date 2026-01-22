@@ -21,11 +21,11 @@ jobs:
       APP_PROJECT: src/Kitsub.Cli/Kitsub.csproj
       CONFIGURATION: Release
       RID: win-x64
-      OUTPUT_DIR: out/win-x64
+      OUTPUT_DIR: ./out/win-x64
       DIST_DIR: dist
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
