@@ -35,8 +35,11 @@ jobs:
       - name: Restore
         run: dotnet restore ${{ env.APP_PROJECT }}
 
+      - name: Build
+        run: dotnet build Kitsub.sln --configuration ${{ env.CONFIGURATION }} --no-restore
+
       - name: Test
-        run: dotnet test Kitsub.sln --configuration ${{ env.CONFIGURATION }} --no-restore
+        run: dotnet test Kitsub.sln --configuration ${{ env.CONFIGURATION }} --no-build --no-restore
 
       - name: Publish
         run: >-
@@ -45,19 +48,26 @@ jobs:
           --runtime ${{ env.RID }}
           --self-contained true
           -p:PublishSingleFile=true
+          --no-build
           --no-restore
           --output ${{ env.OUTPUT_DIR }}
 
       - name: Package
         shell: pwsh
         run: |
+          if (-not (Test-Path $env:OUTPUT_DIR)) {
+            throw "Publish output directory not found: $env:OUTPUT_DIR"
+          }
+          if (-not (Get-ChildItem -Path $env:OUTPUT_DIR -Recurse | Where-Object { -not $_.PSIsContainer })) {
+            throw "Publish output directory is empty: $env:OUTPUT_DIR"
+          }
           New-Item -ItemType Directory -Force -Path $env:DIST_DIR | Out-Null
           $archiveName = "Kitsub-$env:GITHUB_REF_NAME-$env:RID.zip"
           $archivePath = Join-Path $env:DIST_DIR $archiveName
           if (Test-Path $archivePath) {
             Remove-Item $archivePath -Force
           }
-          Compress-Archive -Path "$env:OUTPUT_DIR/*" -DestinationPath $archivePath
+          Compress-Archive -Path "$env:OUTPUT_DIR/*" -DestinationPath $archivePath -Force
 
       - name: Generate checksum
         shell: pwsh
