@@ -69,29 +69,29 @@ public sealed class ReleaseMuxSettings : ToolSettings
     {
         if (!string.IsNullOrWhiteSpace(Output) && !string.IsNullOrWhiteSpace(OutputDir))
         {
-            return ValidationResult.Error("Use either --out or --out-dir, not both.");
+            return ValidationResult.Error("Use either --out or --out-dir, not both. Fix: remove one of the options.");
         }
 
         if (Default == true && NoDefault == true)
         {
-            return ValidationResult.Error("Use either --default or --no-default, not both.");
+            return ValidationResult.Error("Use either --default or --no-default, not both. Fix: remove one of the options.");
         }
 
         if (Forced == true && NoForced == true)
         {
-            return ValidationResult.Error("Use either --forced or --no-forced, not both.");
+            return ValidationResult.Error("Use either --forced or --no-forced, not both. Fix: remove one of the options.");
         }
 
         if (!string.IsNullOrWhiteSpace(SpecPath))
         {
             return File.Exists(SpecPath)
                 ? ValidationResult.Success()
-                : ValidationResult.Error($"Spec file not found: {SpecPath}");
+                : ValidationResult.Error($"Spec file not found: {SpecPath}. Fix: provide an existing spec file.");
         }
 
         if (string.IsNullOrWhiteSpace(InputMkv))
         {
-            return ValidationResult.Error("Missing required option: --in (use --spec for multi-sub mode).");
+            return ValidationResult.Error("Missing required option: --in (use --spec for multi-sub mode). Fix: provide --in <file> or --spec <path>.");
         }
 
         var extensionValidation = ValidationHelpers.ValidateFileExtension(InputMkv, ".mkv", "Input");
@@ -108,13 +108,19 @@ public sealed class ReleaseMuxSettings : ToolSettings
 
         if (string.IsNullOrWhiteSpace(SubtitlePath))
         {
-            return ValidationResult.Error("Missing required option: --sub (use --spec for multi-sub mode).");
+            return ValidationResult.Error("Missing required option: --sub (use --spec for multi-sub mode). Fix: provide --sub <file> or --spec <path>.");
         }
 
         var subtitleValidation = ValidationHelpers.ValidateFileExists(SubtitlePath, "Subtitle file");
         if (!subtitleValidation.Successful)
         {
             return subtitleValidation;
+        }
+
+        var subtitleFormatValidation = ValidationHelpers.ValidateSubtitleFile(SubtitlePath, "Subtitle file");
+        if (!subtitleFormatValidation.Successful)
+        {
+            return subtitleFormatValidation;
         }
 
         if (!string.IsNullOrWhiteSpace(Output))
@@ -124,6 +130,18 @@ public sealed class ReleaseMuxSettings : ToolSettings
             {
                 return outputValidation;
             }
+        }
+
+        var languageValidation = ValidationHelpers.ValidateLanguageTag(Language, "Subtitle language");
+        if (!languageValidation.Successful)
+        {
+            return languageValidation;
+        }
+
+        var titleValidation = ValidationHelpers.ValidateTitle(Title, "Subtitle title");
+        if (!titleValidation.Successful)
+        {
+            return titleValidation;
         }
 
         return ValidationResult.Success();

@@ -41,6 +41,14 @@ public sealed class ReleaseMuxCommand : CommandBase<ReleaseMuxSettings>
         ValidateMkvPath(inputPath, "Input");
         EnsureFileExists(inputPath, "Input MKV");
         ValidateMkvPath(outputPath, "Output");
+        ValidationHelpers.EnsureOutputPath(
+            outputPath,
+            "Output file",
+            allowCreateDirectory: true,
+            allowOverwrite: settings.Force,
+            inputPath: inputPath,
+            createDirectory: !settings.DryRun);
+
         if (!string.IsNullOrWhiteSpace(fontsDir))
         {
             EnsureDirectoryExists(fontsDir, "Fonts directory");
@@ -50,22 +58,11 @@ public sealed class ReleaseMuxCommand : CommandBase<ReleaseMuxSettings>
         var subtitles = BuildSubtitleDescriptors(subtitleSpecs, spec is not null);
         ValidateSubtitleFiles(subtitles);
 
-        var outputDir = Path.GetDirectoryName(outputPath);
-        if (!string.IsNullOrWhiteSpace(outputDir))
-        {
-            Directory.CreateDirectory(outputDir);
-        }
-
-        if (File.Exists(outputPath) && !settings.Force)
-        {
-            throw new ValidationException($"Output file already exists. Use --force to overwrite: {outputPath}");
-        }
-
         var warnings = new List<string>();
         var defaultCount = subtitles.Count(subtitle => subtitle.IsDefault == true);
         if (defaultCount > 1)
         {
-            warnings.Add("More than one subtitle is marked as default.");
+            warnings.Add("More than one subtitle is marked as default. Fix: set only one subtitle as default.");
         }
 
         var fontsToAttach = Array.Empty<string>();
@@ -74,7 +71,7 @@ public sealed class ReleaseMuxCommand : CommandBase<ReleaseMuxSettings>
             fontsToAttach = MkvmergeMuxer.EnumerateFonts(fontsDir).ToArray();
             if (fontsToAttach.Length == 0)
             {
-                warnings.Add("Fonts directory provided but contains no supported font files.");
+                warnings.Add("Fonts directory provided but contains no supported font files. Fix: add .ttf/.otf/.ttc/.woff files or remove --fonts.");
             }
         }
 
@@ -83,7 +80,7 @@ public sealed class ReleaseMuxCommand : CommandBase<ReleaseMuxSettings>
         var mkvmergePath = ResolveExecutable("mkvmerge", tooling.Paths.Mkvmerge);
         if (mkvmergePath is null && settings.NoProvision)
         {
-            Console.MarkupLine("[red]mkvmerge not found. Use --mkvmerge, configure tools.mkvmerge, or run without --no-provision to allow auto-download.[/]");
+            Console.MarkupLine("[red]mkvmerge not found. Fix: use --mkvmerge, configure tools.mkvmerge, or run without --no-provision to allow auto-download.[/]");
             return ExitCodes.ValidationError;
         }
 
@@ -96,7 +93,7 @@ public sealed class ReleaseMuxCommand : CommandBase<ReleaseMuxSettings>
 
         if (mkvmergePath is null)
         {
-            Console.MarkupLine("[red]mkvmerge was not resolved after provisioning.[/]");
+            Console.MarkupLine("[red]mkvmerge was not resolved after provisioning. Fix: set --mkvmerge to a valid path.[/]");
             return ExitCodes.ProvisioningFailure;
         }
 
@@ -128,7 +125,7 @@ public sealed class ReleaseMuxCommand : CommandBase<ReleaseMuxSettings>
                 var fontCheck = await tooling.Service.CheckFontsAsync(outputCandidate, cancellationToken).ConfigureAwait(false);
                 if (!fontCheck.HasFonts)
                 {
-                    warnings.Add("ASS/SSA subtitles detected but no font attachments found.");
+                    warnings.Add("ASS/SSA subtitles detected but no font attachments found. Fix: attach fonts or provide --fonts.");
                 }
             }
 
@@ -150,7 +147,7 @@ public sealed class ReleaseMuxCommand : CommandBase<ReleaseMuxSettings>
 
         if (warnings.Count > 0 && strict)
         {
-            Console.MarkupLine("[red]Strict mode enabled: warnings treated as errors.[/]");
+            Console.MarkupLine("[red]Strict mode enabled: warnings treated as errors. Fix: resolve warnings or disable --strict.[/]");
             return ExitCodes.ValidationError;
         }
 
@@ -169,7 +166,9 @@ public sealed class ReleaseMuxCommand : CommandBase<ReleaseMuxSettings>
             return null;
         }
 
-        return ReleaseSpec.Load(settings.SpecPath).ResolvePaths(settings.SpecPath);
+        return ReleaseSpec.Load(settings.SpecPath)
+            .ResolvePaths(settings.SpecPath)
+            .Validate(settings.SpecPath);
     }
 
     private static string ResolveInputPath(ReleaseMuxSettings settings, ReleaseSpec? spec)
@@ -182,7 +181,7 @@ public sealed class ReleaseMuxCommand : CommandBase<ReleaseMuxSettings>
 
         if (string.IsNullOrWhiteSpace(input))
         {
-            throw new ValidationException("Input MKV is required.");
+            throw new ValidationException("Input MKV is required. Fix: provide --in <file> or set input in the spec.");
         }
 
         return Path.GetFullPath(input);
@@ -227,17 +226,12 @@ public sealed class ReleaseMuxCommand : CommandBase<ReleaseMuxSettings>
     {
         if (spec is not null)
         {
-            if (spec.Subtitles.Count == 0)
-            {
-                throw new ValidationException("Release spec must contain at least one subtitle.");
-            }
-
             return spec.Subtitles;
         }
 
         if (string.IsNullOrWhiteSpace(settings.SubtitlePath))
         {
-            throw new ValidationException("Subtitle file is required.");
+            throw new ValidationException("Subtitle file is required. Fix: provide --sub <file> or use --spec.");
         }
 
         var defaultFlag = settings.Default == true
@@ -289,6 +283,11 @@ public sealed class ReleaseMuxCommand : CommandBase<ReleaseMuxSettings>
         foreach (var subtitle in subtitles)
         {
             EnsureFileExists(subtitle.FilePath, "Subtitle file");
+            var subtitleFormatValidation = ValidationHelpers.ValidateSubtitleFile(subtitle.FilePath, "Subtitle file");
+            if (!subtitleFormatValidation.Successful)
+            {
+                throw new ValidationException(subtitleFormatValidation.Message ?? $"Subtitle file is invalid: {subtitle.FilePath}. Fix: re-export a valid subtitle file.");
+            }
         }
     }
 
@@ -296,7 +295,7 @@ public sealed class ReleaseMuxCommand : CommandBase<ReleaseMuxSettings>
     {
         if (!Path.GetExtension(path).Equals(".mkv", StringComparison.OrdinalIgnoreCase))
         {
-            throw new ValidationException($"{label} must be an MKV file: {path}");
+            throw new ValidationException($"{label} must be an MKV file: {path}. Fix: provide a .mkv file.");
         }
     }
 
@@ -304,7 +303,7 @@ public sealed class ReleaseMuxCommand : CommandBase<ReleaseMuxSettings>
     {
         if (!File.Exists(path))
         {
-            throw new ValidationException($"{label} not found: {path}");
+            throw new ValidationException($"{label} not found: {path}. Fix: provide an existing file path.");
         }
     }
 
@@ -312,7 +311,7 @@ public sealed class ReleaseMuxCommand : CommandBase<ReleaseMuxSettings>
     {
         if (!Directory.Exists(path))
         {
-            throw new ValidationException($"{label} not found: {path}");
+            throw new ValidationException($"{label} not found: {path}. Fix: create the directory or choose a valid path.");
         }
     }
 
@@ -328,14 +327,14 @@ public sealed class ReleaseMuxCommand : CommandBase<ReleaseMuxSettings>
     {
         if (!File.Exists(tempPath))
         {
-            throw new ValidationException("Release output was not generated.");
+            throw new ValidationException("Release output was not generated. Fix: check logs for mux failures.");
         }
 
         if (File.Exists(outputPath))
         {
             if (!force)
             {
-                throw new ValidationException($"Output file already exists. Use --force to overwrite: {outputPath}");
+                throw new ValidationException($"Output file already exists: {outputPath}. Fix: pass --force to overwrite or choose another output path.");
             }
 
             File.Replace(tempPath, outputPath, null, ignoreMetadataErrors: true);

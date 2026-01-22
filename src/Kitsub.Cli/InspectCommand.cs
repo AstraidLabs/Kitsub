@@ -36,14 +36,14 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
             // Block: Validate the inspection target and any required file paths.
             if (string.IsNullOrWhiteSpace(Target))
             {
-                return ValidationResult.Error("Missing required argument: <TARGET>.");
+                return ValidationResult.Error("Missing required argument: <TARGET>. Fix: provide a file path or the mediainfo mode.");
             }
 
             if (Target.Equals("mediainfo", StringComparison.OrdinalIgnoreCase))
             {
                 if (string.IsNullOrWhiteSpace(FilePath))
                 {
-                    return ValidationResult.Error("Missing required argument: <FILE> for mediainfo mode.");
+                    return ValidationResult.Error("Missing required argument: <FILE> for mediainfo mode. Fix: provide a media file path.");
                 }
 
                 return ValidationHelpers.ValidateFileExists(FilePath, "Input file");
@@ -51,7 +51,7 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
 
             if (!string.IsNullOrWhiteSpace(FilePath))
             {
-                return ValidationResult.Error("Unexpected extra argument. Use `kitsub inspect mediainfo <file>` for MediaInfo mode.");
+                return ValidationResult.Error("Unexpected extra argument. Fix: use `kitsub inspect mediainfo <file>` for MediaInfo mode.");
             }
 
             return ValidationHelpers.ValidateFileExists(Target, "Input file");
@@ -157,7 +157,7 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
 
             if (settings.NoProvision)
             {
-                Console.MarkupLine("[red]MediaInfo not found. Use --mediainfo or configure tools.mediainfo, or run without --no-provision to auto-download.[/]");
+                Console.MarkupLine("[red]MediaInfo not found. Fix: use --mediainfo, configure tools.mediainfo, or run without --no-provision to auto-download.[/]");
                 return ExitCodes.ValidationError;
             }
 
@@ -165,14 +165,14 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
             {
                 if (!IsInteractive())
                 {
-                    Console.MarkupLine("[red]MediaInfo not found. Use --mediainfo or configure tools.mediainfo, or rerun with --assume-yes to auto-download.[/]");
+                    Console.MarkupLine("[red]MediaInfo not found. Fix: use --mediainfo, configure tools.mediainfo, or rerun with --assume-yes to auto-download.[/]");
                     return ExitCodes.ValidationError;
                 }
 
                 var download = AnsiConsole.Confirm("Download MediaInfo now?", defaultValue: false);
                 if (!download)
                 {
-                    Console.MarkupLine("[red]MediaInfo not found. Use --mediainfo or configure tools.mediainfo, or rerun with --assume-yes to auto-download.[/]");
+                    Console.MarkupLine("[red]MediaInfo not found. Fix: use --mediainfo, configure tools.mediainfo, or rerun with --assume-yes to auto-download.[/]");
                     return ExitCodes.ValidationError;
                 }
             }
@@ -190,7 +190,7 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
 
             if (provisionResult is null)
             {
-                Console.MarkupLine("[red]Failed to provision MediaInfo. Check logs for details.[/]");
+                Console.MarkupLine("[red]Failed to provision MediaInfo. Fix: check logs and verify network access.[/]");
                 return ExitCodes.ProvisioningFailure;
             }
 
@@ -198,7 +198,7 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
             mediainfoPath = ResolveExecutable("mediainfo", resolved.Mediainfo);
             if (mediainfoPath is null)
             {
-                Console.MarkupLine("[red]MediaInfo provisioning completed but executable was not found.[/]");
+                Console.MarkupLine("[red]MediaInfo provisioning completed but executable was not found. Fix: set --mediainfo to a valid path.[/]");
                 return ExitCodes.ProvisioningFailure;
             }
         }
@@ -215,6 +215,14 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
             return ExitCodes.Success;
         }
 
+        ValidationHelpers.EnsureOutputPath(
+            reportPath,
+            "Report output",
+            allowCreateDirectory: true,
+            allowOverwrite: false,
+            inputPath: null,
+            createDirectory: true);
+
         var services = new ServiceCollection();
         services.AddSingleton(runOptions);
         services.AddSingleton<IExternalToolRunner, ExternalToolRunner>();
@@ -225,10 +233,9 @@ public sealed class InspectCommand : CommandBase<InspectCommand.Settings>
         var result = await runner.CaptureAsync(mediainfoPath, args, runOptions, cancellationToken).ConfigureAwait(false);
         if (result.ExitCode != 0)
         {
-            throw new ExternalToolException("mediainfo failed.", result);
+            throw new ExternalToolException("mediainfo failed. Fix: verify the input file and MediaInfo installation.", result);
         }
 
-        Directory.CreateDirectory(Path.GetDirectoryName(reportPath)!);
         await File.WriteAllTextAsync(reportPath, result.StandardOutput, cancellationToken).ConfigureAwait(false);
 
         Console.MarkupLine($"[green]MediaInfo report saved:[/] {Markup.Escape(reportPath)}");

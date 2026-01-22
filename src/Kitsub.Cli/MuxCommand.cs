@@ -50,13 +50,17 @@ public sealed class MuxCommand : CommandBase<MuxCommand.Settings>
         /// <summary>Gets the optional output MKV file path.</summary>
         public string? Output { get; set; }
 
+        [CommandOption("--force")]
+        /// <summary>Gets a value indicating whether existing output files should be overwritten.</summary>
+        public bool Force { get; set; }
+
         /// <summary>Validates the provided settings for muxing subtitles.</summary>
         /// <returns>A validation result indicating success or failure.</returns>
         public override ValidationResult Validate()
         {
             if (string.IsNullOrWhiteSpace(InputMkv))
             {
-                return ValidationResult.Error("Missing required option: --in.");
+                return ValidationResult.Error("Missing required option: --in. Fix: provide --in <file>.");
             }
 
             var extensionValidation = ValidationHelpers.ValidateFileExtension(InputMkv, ".mkv", "Input");
@@ -75,7 +79,7 @@ public sealed class MuxCommand : CommandBase<MuxCommand.Settings>
             if (Subtitles.Length == 0)
             {
                 // Block: Require at least one subtitle file to mux.
-                return ValidationResult.Error("Missing required option: --sub.");
+                return ValidationResult.Error("Missing required option: --sub. Fix: provide at least one subtitle file.");
             }
 
             foreach (var subtitle in Subtitles)
@@ -86,18 +90,24 @@ public sealed class MuxCommand : CommandBase<MuxCommand.Settings>
                 {
                     return subValidation;
                 }
+
+                var subtitleFormatValidation = ValidationHelpers.ValidateSubtitleFile(subtitle, "Subtitle file");
+                if (!subtitleFormatValidation.Successful)
+                {
+                    return subtitleFormatValidation;
+                }
             }
 
             if (Default == true && NoDefault == true)
             {
                 // Block: Prevent conflicting default flag configuration.
-                return ValidationResult.Error("Use either --default or --no-default, not both.");
+                return ValidationResult.Error("Use either --default or --no-default, not both. Fix: remove one of the options.");
             }
 
             if (Forced == true && NoForced == true)
             {
                 // Block: Prevent conflicting forced flag configuration.
-                return ValidationResult.Error("Use either --forced or --no-forced, not both.");
+                return ValidationResult.Error("Use either --forced or --no-forced, not both. Fix: remove one of the options.");
             }
 
             if (!string.IsNullOrWhiteSpace(Output))
@@ -107,6 +117,18 @@ public sealed class MuxCommand : CommandBase<MuxCommand.Settings>
                 {
                     return outputValidation;
                 }
+            }
+
+            var languageValidation = ValidationHelpers.ValidateLanguageTag(Language, "Subtitle language");
+            if (!languageValidation.Successful)
+            {
+                return languageValidation;
+            }
+
+            var titleValidation = ValidationHelpers.ValidateTitle(Title, "Subtitle title");
+            if (!titleValidation.Successful)
+            {
+                return titleValidation;
             }
 
             return ValidationResult.Success();
@@ -138,6 +160,14 @@ public sealed class MuxCommand : CommandBase<MuxCommand.Settings>
             var name = Path.GetFileNameWithoutExtension(settings.InputMkv);
             output = Path.Combine(Path.GetDirectoryName(settings.InputMkv) ?? string.Empty, $"{name}.kitsub.mkv");
         }
+
+        ValidationHelpers.EnsureOutputPath(
+            output,
+            "Output file",
+            allowCreateDirectory: true,
+            allowOverwrite: settings.Force,
+            inputPath: settings.InputMkv,
+            createDirectory: !settings.DryRun);
 
         // Block: Resolve default and forced flags based on mutually exclusive options.
         var defaultFlag = settings.Default == true

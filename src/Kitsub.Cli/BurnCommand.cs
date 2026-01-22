@@ -1,4 +1,5 @@
 // Summary: Implements the CLI command that burns subtitles into video output.
+using Kitsub.Core;
 using Kitsub.Tooling;
 using Kitsub.Tooling.Provisioning;
 using Spectre.Console;
@@ -30,6 +31,10 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
         /// <summary>Gets the output media file path.</summary>
         public string OutputFile { get; set; } = string.Empty;
 
+        [CommandOption("--force")]
+        /// <summary>Gets a value indicating whether existing output files should be overwritten.</summary>
+        public bool Force { get; set; }
+
         [CommandOption("--fontsdir <DIR>")]
         /// <summary>Gets the optional directory containing fonts used for subtitles.</summary>
         public string? FontsDir { get; set; }
@@ -48,7 +53,7 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
         {
             if (string.IsNullOrWhiteSpace(InputFile))
             {
-                return ValidationResult.Error("Missing required option: --in.");
+                return ValidationResult.Error("Missing required option: --in. Fix: provide --in <file>.");
             }
 
             // Block: Validate the required input file before continuing.
@@ -71,19 +76,19 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
             if (string.IsNullOrWhiteSpace(OutputFile))
             {
                 // Block: Require an explicit output path for the burned video.
-                return ValidationResult.Error("Missing required option: --out.");
+                return ValidationResult.Error("Missing required option: --out. Fix: provide --out <file>.");
             }
 
             if (string.IsNullOrWhiteSpace(SubtitleFile) && string.IsNullOrWhiteSpace(TrackSelector))
             {
                 // Block: Enforce that either a subtitle file or track selector is supplied.
-                return ValidationResult.Error("Missing required option: --sub or --track.");
+                return ValidationResult.Error("Missing required option: --sub or --track. Fix: provide --sub <file> or --track <selector>.");
             }
 
             if (!string.IsNullOrWhiteSpace(SubtitleFile) && !string.IsNullOrWhiteSpace(TrackSelector))
             {
                 // Block: Prevent ambiguous requests with both subtitle sources set.
-                return ValidationResult.Error("Use either --sub or --track, not both.");
+                return ValidationResult.Error("Use either --sub or --track, not both. Fix: remove one of the options.");
             }
 
             if (!string.IsNullOrWhiteSpace(SubtitleFile))
@@ -93,6 +98,21 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
                 if (!subValidation.Successful)
                 {
                     return subValidation;
+                }
+
+                var subtitleFormatValidation = ValidationHelpers.ValidateSubtitleFile(SubtitleFile, "Subtitle file");
+                if (!subtitleFormatValidation.Successful)
+                {
+                    return subtitleFormatValidation;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(TrackSelector))
+            {
+                var selectorValidation = ValidationHelpers.ValidateTrackSelectorSyntax(TrackSelector);
+                if (!selectorValidation.Successful)
+                {
+                    return selectorValidation;
                 }
             }
 
@@ -118,8 +138,39 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
         ApplyDefaults(settings);
         ValidateDefaults(settings);
 
+        ValidationHelpers.EnsureOutputPath(
+            settings.OutputFile,
+            "Output file",
+            allowCreateDirectory: true,
+            allowOverwrite: settings.Force,
+            inputPath: settings.InputFile,
+            createDirectory: !settings.DryRun);
+
         // Block: Create tooling services scoped to this command execution.
         using var tooling = ToolingFactory.CreateTooling(settings, Console, _toolResolver);
+
+        if (!string.IsNullOrWhiteSpace(settings.TrackSelector) && !settings.DryRun)
+        {
+            var info = await tooling.GetRequiredService<FfprobeClient>()
+                .ProbeAsync(settings.InputFile, cancellationToken).ConfigureAwait(false);
+            var selection = ValidationHelpers.ResolveTrackSelection(
+                info,
+                TrackType.Subtitle,
+                settings.TrackSelector,
+                rejectBitmapSubtitles: true,
+                settings.InputFile);
+
+            if (!string.IsNullOrWhiteSpace(selection.Warning))
+            {
+                Console.MarkupLine($"[yellow]{Markup.Escape(selection.Warning)}[/]");
+            }
+
+            if (string.IsNullOrWhiteSpace(settings.FontsDir) && ValidationHelpers.IsAssSubtitleTrack(selection.Track))
+            {
+                Console.MarkupLine("[yellow]ASS/SSA subtitle track detected without a fonts directory. Fix: provide --fontsdir with required fonts.[/]");
+            }
+        }
+
         if (settings.DryRun)
         {
             // Block: Render the external tool commands without executing them.
@@ -129,6 +180,11 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
 
         if (!string.IsNullOrWhiteSpace(settings.SubtitleFile))
         {
+            if (string.IsNullOrWhiteSpace(settings.FontsDir) && ValidationHelpers.IsAssSubtitleFile(settings.SubtitleFile))
+            {
+                Console.MarkupLine("[yellow]ASS/SSA subtitle file detected without a fonts directory. Fix: provide --fontsdir with required fonts.[/]");
+            }
+
             // Block: Burn subtitles from a provided subtitle file.
             await tooling.Service.BurnSubtitlesAsync(
                 settings.InputFile,
@@ -143,10 +199,18 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
         }
 
         // Block: Extract a subtitle track to a temp file before burning.
-        var tempFile = await tooling.Service.ExtractSubtitleToTempAsync(
-            settings.InputFile,
-            settings.TrackSelector!,
-            cancellationToken).ConfigureAwait(false);
+        string tempFile;
+        try
+        {
+            tempFile = await tooling.Service.ExtractSubtitleToTempAsync(
+                settings.InputFile,
+                settings.TrackSelector!,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new ValidationException($"Failed to resolve subtitle track. Fix: run `kitsub inspect {settings.InputFile}` to list tracks. ({ex.Message})", ex);
+        }
 
         try
         {
@@ -188,7 +252,7 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
             if (!int.TryParse(settings.TrackSelector, out var subtitleIndex))
             {
                 // Block: Reject non-numeric track selectors for dry-run extraction.
-                throw new ValidationException("Invalid value for --track: must be numeric when using --dry-run.");
+                throw new ValidationException("Invalid value for --track: must be numeric when using --dry-run. Fix: use a numeric track index.");
             }
 
         // Block: Render extraction and burn commands using a temporary subtitle output.
@@ -220,7 +284,7 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
     {
         if (settings.Crf is < 0 or > 51)
         {
-            throw new ValidationException("Invalid value for --crf: must be between 0 and 51.");
+            throw new ValidationException("Invalid value for --crf: must be between 0 and 51. Fix: choose a value between 0 and 51.");
         }
 
         if (!string.IsNullOrWhiteSpace(settings.FontsDir))
@@ -228,7 +292,7 @@ public sealed class BurnCommand : CommandBase<BurnCommand.Settings>
             var dirValidation = ValidationHelpers.ValidateDirectoryExists(settings.FontsDir, "Fonts directory");
             if (!dirValidation.Successful)
             {
-                throw new ValidationException(dirValidation.Message ?? "Fonts directory does not exist.");
+                throw new ValidationException(dirValidation.Message ?? "Fonts directory does not exist. Fix: provide an existing fonts directory.");
             }
         }
     }

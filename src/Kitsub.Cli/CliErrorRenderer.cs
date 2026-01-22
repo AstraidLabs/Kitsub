@@ -14,6 +14,7 @@ public static class CliErrorRenderer
     public static void RenderUsageError(IAnsiConsole console, string message, string? commandPath, bool includeCommandTip)
     {
         console.MarkupLine($"[red]Error:[/] {Markup.Escape(message)}");
+        console.MarkupLine("[red]Fix:[/] Run kitsub --help or check command usage.");
         console.MarkupLine("[yellow]Tip:[/] kitsub --help");
 
         if (includeCommandTip && !string.IsNullOrWhiteSpace(commandPath))
@@ -32,6 +33,7 @@ public static class CliErrorRenderer
     {
         var safeInput = string.IsNullOrWhiteSpace(input) ? "" : Markup.Escape(input);
         console.MarkupLine($"[red]Error:[/] Unknown command: \"{safeInput}\"");
+        console.MarkupLine("[red]Fix:[/] Run kitsub --help to see available commands.");
         console.MarkupLine("[yellow]Tip:[/] kitsub --help");
 
         if (suggestions.Count > 0)

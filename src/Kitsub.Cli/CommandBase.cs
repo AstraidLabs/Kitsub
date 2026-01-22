@@ -46,6 +46,7 @@ public abstract class CommandBase<TSettings> : AsyncCommand<TSettings> where TSe
             EffectiveConfig = _configService.LoadEffectiveConfig();
             ToolSettingsApplier.Apply(settings, EffectiveConfig);
             ToolingFactory.ValidateLogging(settings);
+            ToolingFactory.ValidateToolOverrides(settings);
             var preflight = await EnsureRequiredToolsAsync(context, settings, cancellationToken).ConfigureAwait(false);
             if (preflight.HasValue)
             {
@@ -85,7 +86,7 @@ public abstract class CommandBase<TSettings> : AsyncCommand<TSettings> where TSe
             return null;
         }
 
-        Console.MarkupLine($"[red]Command unavailable. Missing required tools: {Markup.Escape(string.Join(", ", missing.Select(FormatToolName)))}.[/]");
+        Console.MarkupLine($"[red]Command unavailable. Missing required tools: {Markup.Escape(string.Join(", ", missing.Select(FormatToolName)))}. Fix: run `kitsub tools fetch` or configure tool paths.[/]");
 
         if (settings.NoProvision)
         {
@@ -123,14 +124,14 @@ public abstract class CommandBase<TSettings> : AsyncCommand<TSettings> where TSe
 
         if (!_ridDetector.IsWindows)
         {
-            Console.MarkupLine("[red]Tool provisioning is only available on Windows. Configure tool paths or install tools on PATH.[/]");
+            Console.MarkupLine("[red]Tool provisioning is only available on Windows. Fix: configure tool paths or install tools on PATH.[/]");
             return ExitCodes.ValidationError;
         }
 
         var rid = _ridDetector.GetRuntimeRid();
         if (!_bundleManager.Manifest.Rids.ContainsKey(rid))
         {
-            Console.MarkupLine("[red]Tool provisioning is not available for this platform.[/]");
+            Console.MarkupLine("[red]Tool provisioning is not available for this platform. Fix: configure tool paths or install tools on PATH.[/]");
             return ExitCodes.ValidationError;
         }
 
@@ -144,14 +145,14 @@ public abstract class CommandBase<TSettings> : AsyncCommand<TSettings> where TSe
 
         if (provisioned is null)
         {
-            Console.MarkupLine("[red]Failed to provision tools. Check logs for details.[/]");
+            Console.MarkupLine("[red]Failed to provision tools. Fix: check logs and verify network access.[/]");
             return ExitCodes.ProvisioningFailure;
         }
 
         var missing = GetMissingTools(settings, requirement);
         if (missing.Count > 0)
         {
-            Console.MarkupLine("[red]Tool provisioning completed but required tools are still missing.[/]");
+            Console.MarkupLine("[red]Tool provisioning completed but required tools are still missing. Fix: configure tool paths or reinstall tools.[/]");
             RenderProvisioningInstructions();
             return ExitCodes.ProvisioningFailure;
         }

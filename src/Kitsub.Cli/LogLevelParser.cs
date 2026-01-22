@@ -16,7 +16,7 @@ public static class LogLevelParser
             "warn" => LogEventLevel.Warning,
             "error" => LogEventLevel.Error,
             null or "" => LogEventLevel.Information,
-            _ => throw new ValidationException($"Unknown log level: {value}")
+            _ => throw new ValidationException($"Unknown log level: {value}. Fix: use trace, debug, info, warn, or error.")
         };
     }
 }
