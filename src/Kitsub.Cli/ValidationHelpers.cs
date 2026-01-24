@@ -251,7 +251,7 @@ public static class ValidationHelpers
 
         if (inputExtension == ".ass" && outputExtension == ".srt")
         {
-            return ValidationResult.Error("ASS to SRT conversion is not supported reliably. Fix: keep subtitles in ASS or export from your editor.");
+            return ValidationResult.Error("ASS to SRT conversion is not supported reliably. Use another tool or convert to ASS first.");
         }
 
         return ValidationResult.Error($"Unsupported subtitle conversion: {inputExtension} -> {outputExtension}. Fix: use .srt -> .ass.");
