@@ -39,7 +39,7 @@ public class FfmpegClientTests
         var act = () => client.BuildConvertSubtitleCommand("input.vtt", "output.srt");
 
         act.Should().Throw<InvalidOperationException>()
-            .WithMessage("Unsupported subtitle conversion: .vtt -> .srt.");
+            .WithMessage("Unsupported subtitle conversion: .vtt -> .srt. Fix: use .srt -> .ass.");
     }
 
     [Fact]
