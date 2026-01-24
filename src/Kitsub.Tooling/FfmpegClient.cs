@@ -234,7 +234,7 @@ public sealed class FfmpegClient
         if (inputExtension == ".ass" && outputExtension == ".srt")
         {
             // Block: Reject ASS to SRT conversion to avoid quality loss.
-            throw new InvalidOperationException("ASS to SRT conversion is not supported reliably. Fix: keep subtitles in ASS or export from your editor.");
+            throw new InvalidOperationException("ASS to SRT conversion is not supported reliably. Use another tool or convert to ASS first.");
         }
 
         // Block: Reject any other unsupported conversion combinations.
