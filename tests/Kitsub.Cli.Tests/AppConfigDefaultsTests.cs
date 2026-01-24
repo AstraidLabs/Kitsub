@@ -14,6 +14,11 @@ public class AppConfigDefaultsTests
         config.ConfigVersion.Should().Be(1);
         config.Tools.PreferBundled.Should().BeTrue();
         config.Tools.PreferPath.Should().BeFalse();
+        config.Tools.StartupPrompt.Should().BeTrue();
+        config.Tools.CommandPromptOnMissing.Should().BeTrue();
+        config.Tools.AutoUpdate.Should().BeFalse();
+        config.Tools.UpdatePromptOnStartup.Should().BeTrue();
+        config.Tools.CheckIntervalHours.Should().Be(24);
         config.Logging.Enabled.Should().BeTrue();
         config.Logging.LogLevel.Should().Be("info");
         config.Logging.LogFile.Should().Be("logs/kitsub.log");
