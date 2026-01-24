@@ -33,7 +33,7 @@ jobs:
           dotnet-version: 10.0.100
 
       - name: Restore
-        run: dotnet restore ${{ env.APP_PROJECT }}
+        run: dotnet restore Kitsub.sln
 
       - name: Build
         run: dotnet build Kitsub.sln --configuration ${{ env.CONFIGURATION }} --no-restore
