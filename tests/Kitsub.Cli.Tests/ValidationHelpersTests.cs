@@ -208,7 +208,7 @@ public class ValidationHelpersTests
         var result = ValidationHelpers.ValidateSubtitleConversion("input.ass", "output.srt");
 
         result.Successful.Should().BeFalse();
-        result.Message.Should().Be("ASS to SRT conversion is not supported reliably. Fix: keep subtitles in ASS or export from your editor.");
+        result.Message.Should().Be("ASS to SRT conversion is not supported reliably. Use another tool or convert to ASS first.");
     }
 
     [Fact]
