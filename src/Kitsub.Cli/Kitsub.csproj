@@ -20,6 +20,7 @@
 		<RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
 		<Configurations>Debug;Release;x64</Configurations>
 		<Platforms>AnyCPU;x64</Platforms>
+		<StartupObject>Kitsub.Cli.Program</StartupObject>
 	</PropertyGroup>
 
 	<ItemGroup>
