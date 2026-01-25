@@ -39,7 +39,7 @@ jobs:
         run: dotnet build Kitsub.sln --configuration ${{ env.CONFIGURATION }} --no-restore
 
       - name: Test
-        run: dotnet test Kitsub.sln --configuration ${{ env.CONFIGURATION }} --no-build --no-restore
+        run: dotnet test Kitsub.sln --configuration ${{ env.CONFIGURATION }} --no-build
 
       - name: Publish
         run: >-

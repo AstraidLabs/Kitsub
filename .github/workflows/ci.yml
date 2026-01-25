@@ -43,4 +43,4 @@ jobs:
         run: dotnet build Kitsub.sln -c Release --no-restore
 
       - name: Test
-        run: dotnet test Kitsub.sln -c Release --no-build --no-restore
+        run: dotnet test Kitsub.sln -c Release --no-build
