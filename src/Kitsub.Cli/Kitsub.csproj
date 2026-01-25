@@ -18,6 +18,8 @@
 		<RepositoryUrl>https://github.com/AstraidLabs/Kitsub</RepositoryUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+		<Configurations>Debug;Release;x64</Configurations>
+		<Platforms>AnyCPU;x64</Platforms>
 	</PropertyGroup>
 
 	<ItemGroup>
