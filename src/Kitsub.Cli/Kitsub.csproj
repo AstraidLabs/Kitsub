@@ -22,6 +22,12 @@
 		<Platforms>AnyCPU;x64</Platforms>
 		<StartupObject>Kitsub.Cli.Program</StartupObject>
 	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='x64|AnyCPU'">
+	  <Optimize>True</Optimize>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='x64|x64'">
+	  <Optimize>True</Optimize>
+	</PropertyGroup>
 
 	<ItemGroup>
 		<Content Include="favicon.ico" Pack="true" PackagePath="\" />
