@@ -18,29 +18,31 @@ jobs:
   build-test:
     name: Build and test (windows-latest)
     runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
-
-      - name: Cache NuGet packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~\.nuget\packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets', '**/Directory.Packages.props', 'global.json', '**/*.sln') }}
-          restore-keys: |
-            ${{ runner.os }}-nuget-
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+            **/*.props
+            **/*.targets
+            **/Directory.Packages.props
+            **/*.sln
+            global.json
 
       - name: Restore
-        run: dotnet restore Kitsub.sln
+        run: dotnet restore Kitsub.sln --nologo
 
       - name: Build
-        run: dotnet build Kitsub.sln -c Release --no-restore
+        run: dotnet build Kitsub.sln -c Release --no-restore --nologo
 
       - name: Test
-        run: dotnet test Kitsub.sln -c Release --no-build
+        run: dotnet test Kitsub.sln -c Release --no-build --no-restore --nologo
