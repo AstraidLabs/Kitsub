@@ -23,10 +23,10 @@ jobs:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v10
         with:
           global-json-file: global.json
           cache: true
