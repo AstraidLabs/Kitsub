@@ -17,6 +17,7 @@
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<RepositoryUrl>https://github.com/AstraidLabs/Kitsub</RepositoryUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
 	</PropertyGroup>
 
 	<ItemGroup>
