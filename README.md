@@ -99,16 +99,6 @@ Examples and command details: [Instructions.md](Instructions.md)
 - [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
 - [LICENSE.txt](LICENSE.txt)
 
-## 📁 Project structure
-
-```
-.
-├─ src/
-├─ docs/
-├─ tests/
-├─ scripts/
-```
-
 ## 🛠️ Project status
 
 Open-source project maintained by a single author.
@@ -117,7 +107,3 @@ Open-source project maintained by a single author.
 
 MIT License. See [LICENSE.txt](LICENSE.txt).
 
-## 👥 Maintainer
-
-- AstraidLabs
-- Repository: https://github.com/AstraidLabs/Kitsub
