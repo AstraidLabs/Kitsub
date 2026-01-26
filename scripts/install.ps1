@@ -126,7 +126,7 @@ if (-not $exePath -or -not (Test-Path $exePath)) {
 }
 
 $cmdPath = Join-Path $InstallDir 'kitsub.cmd'
-$cmdContent = "@echo off`r`n\"%~dp0kitsub.exe\" %*`r`n"
+$cmdContent = "@echo off`r`n`"%~dp0kitsub.exe`" %*`r`n"
 Set-Content -Path $cmdPath -Value $cmdContent -Encoding ASCII
 
 if (-not $NoPath) {
