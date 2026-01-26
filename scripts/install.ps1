@@ -85,9 +85,31 @@ try {
     $zipAsset = $release.assets | Where-Object { $_.name -eq $zipName } | Select-Object -First 1
     $shaAsset = $release.assets | Where-Object { $_.name -eq $shaName } | Select-Object -First 1
 
-    if (-not $zipAsset -or -not $shaAsset) {
+    if (-not $zipAsset) {
+        $zipCandidates = $release.assets | Where-Object { $_.name -like "*$Rid*.zip" }
+        $zipAsset = $zipCandidates | Where-Object { $_.name -like "*$Rid.zip" } | Select-Object -First 1
+        if (-not $zipAsset -and $zipCandidates.Count -eq 1) {
+            $zipAsset = $zipCandidates | Select-Object -First 1
+        }
+        if ($zipAsset) {
+            $zipName = $zipAsset.name
+            $shaName = "$zipName.sha256"
+        }
+    }
+
+    if (-not $shaAsset -and $zipAsset) {
+        $shaAsset = $release.assets | Where-Object { $_.name -eq "$($zipAsset.name).sha256" } | Select-Object -First 1
+        if (-not $shaAsset) {
+            $shaAsset = $release.assets | Where-Object { $_.name -eq "$Rid.zip.sha256" } | Select-Object -First 1
+        }
+        if ($shaAsset) {
+            $shaName = $shaAsset.name
+        }
+    }
+
+    if (-not $zipAsset) {
         $available = ($release.assets | ForEach-Object { $_.name }) -join ", "
-        throw "Release assets not found. Expected '$zipName' and '$shaName'. Available: $available"
+        throw "Release assets not found. Expected '$zipName'. Available: $available"
     }
 
     if (Test-Path $InstallDir) {
@@ -112,6 +134,7 @@ try {
 
     $zipPath = Join-Path $tempDir $zipName
     $shaPath = Join-Path $tempDir $shaName
+    $skipChecksum = -not $shaAsset
 
     # Zrychlení IWR v PS 5.1 (volitelné):
     $oldProgress = $ProgressPreference
@@ -121,34 +144,40 @@ try {
         Write-Status "Downloading $zipName..."
         Invoke-WebRequest -Uri $zipAsset.browser_download_url -Headers $headers -OutFile $zipPath
 
-        Write-Status "Downloading $shaName..."
-        Invoke-WebRequest -Uri $shaAsset.browser_download_url -Headers $headers -OutFile $shaPath
+        if (-not $skipChecksum) {
+            Write-Status "Downloading $shaName..."
+            Invoke-WebRequest -Uri $shaAsset.browser_download_url -Headers $headers -OutFile $shaPath
+        }
     } finally {
         $ProgressPreference = $oldProgress
     }
 
-    Write-Status "Verifying SHA256 checksum..."
-    $shaLine = (Get-Content -Path $shaPath -TotalCount 1).Trim()
-
-    # Podpora: "HASH  file", "HASH *file", nebo jen "HASH"
-    $expectedHash = $null
-    $expectedFile = $zipName
-
-    if ($shaLine -match '^([a-fA-F0-9]{64})\s+\*?(.+)$') {
-        $expectedHash = $Matches[1].ToLowerInvariant()
-        $expectedFile = $Matches[2].Trim()
-        if ($expectedFile -ne $zipName) {
-            throw "Checksum filename mismatch. Expected '$zipName', got '$expectedFile'."
-        }
-    } elseif ($shaLine -match '^([a-fA-F0-9]{64})$') {
-        $expectedHash = $Matches[1].ToLowerInvariant()
+    if ($skipChecksum) {
+        Write-Status "Checksum asset not found; skipping SHA256 verification."
     } else {
-        throw "Unexpected checksum format in $shaName."
-    }
+        Write-Status "Verifying SHA256 checksum..."
+        $shaLine = (Get-Content -Path $shaPath -TotalCount 1).Trim()
 
-    $actualHash = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
-    if ($actualHash -ne $expectedHash) {
-        throw "Checksum verification failed."
+        # Podpora: "HASH  file", "HASH *file", nebo jen "HASH"
+        $expectedHash = $null
+        $expectedFile = $zipName
+
+        if ($shaLine -match '^([a-fA-F0-9]{64})\s+\*?(.+)$') {
+            $expectedHash = $Matches[1].ToLowerInvariant()
+            $expectedFile = $Matches[2].Trim()
+            if ($expectedFile -ne $zipName) {
+                throw "Checksum filename mismatch. Expected '$zipName', got '$expectedFile'."
+            }
+        } elseif ($shaLine -match '^([a-fA-F0-9]{64})$') {
+            $expectedHash = $Matches[1].ToLowerInvariant()
+        } else {
+            throw "Unexpected checksum format in $shaName."
+        }
+
+        $actualHash = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($actualHash -ne $expectedHash) {
+            throw "Checksum verification failed."
+        }
     }
 
     Write-Status "Extracting to $InstallDir..."
