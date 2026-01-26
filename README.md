@@ -40,6 +40,35 @@ Note: The available command set depends on the build and on external tool availa
   - MKVToolNix
   - MediaInfo
 
+### Installation (Windows)
+
+Recommended (PowerShell):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr -useb https://raw.githubusercontent.com/AstraidLabs/Kitsub/main/scripts/install.ps1 | iex"
+```
+
+Verify:
+
+```powershell
+kitsub --help
+```
+
+Update: rerun the installer command above.
+
+Uninstall:
+
+1. Delete `%LOCALAPPDATA%\Kitsub\bin`
+2. Remove `%LOCALAPPDATA%\Kitsub\bin` from your user PATH
+
+Manual install fallback:
+
+1. Download the latest `Kitsub-<tag>-win-x64.zip` from GitHub Releases
+2. Extract to `%LOCALAPPDATA%\Kitsub\bin`
+3. Add `%LOCALAPPDATA%\Kitsub\bin` to your user PATH
+
+Security note: always review scripts before running them, especially when using `iex`.
+
 ### Build from source
 
 ```bash
