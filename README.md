@@ -45,7 +45,7 @@ Note: The available command set depends on the build and on external tool availa
 Recommended (PowerShell):
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr -useb https://raw.githubusercontent.com/AstraidLabs/Kitsub/main/scripts/install.ps1 | iex"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr -useb https://raw.githubusercontent.com/AstraidLabs/Kitsub/master/scripts/install.ps1 | iex"
 ```
 
 Verify:
@@ -106,4 +106,3 @@ Open-source project maintained by a single author.
 ## 📄 License
 
 MIT License. See [LICENSE.txt](LICENSE.txt).
-
